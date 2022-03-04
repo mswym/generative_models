@@ -11,8 +11,9 @@ import array
 import OpenEXR
 import Imath
 
-import re
+import cv2
 
+import re
 
 # these classes consider reading the images rendered by Che et al.(2020)
 
@@ -80,7 +81,6 @@ class ReadImgDir():
         self.fname_list_img = glob.glob(path_dir)
         self.fname_list_img.sort()
         self.flag_hdr = flag_hdr
-        self.tonemap = cv.createTonemap(gamma=val_gamma)
         self.num_img = len(self.fname_list_img)
         if path_mask != 0:
             self.maskimg = self.read_exr_fnc(path_mask)
@@ -97,7 +97,7 @@ class ReadImgDir():
         if self.flag_hdr:
             for i_list in range(self.num_img):
                 print(self.fname_list_img[i_list])
-                img = self.read_exr_fnc(self.fname_list_img[i_list])  # size is m x n x c
+                img = self.read_exr_fnc(self.fname_list_img[i_list])  # size is m x n  here only grayscale
                 img = self.apply_tonemap(img)
                 img = img * self.maskimg
                 img = Image.fromarray(img.astype('uint8'))
@@ -122,8 +122,11 @@ class ReadImgDir():
                 list_label.append(self.fname_list_img[i_list])
         return list_img, list_label
 
-    def apply_tonemap(self,img):
-        return self.tonemap.process(img.copy())
+    def apply_tonemap(self, img, eps=10**(-10), param_a=1):
+        # a global tone mapping using geometric mean.
+        key = np.exp(np.mean(np.log(eps+img)))
+        img = (param_a/key) * img
+        return img/(1+img)
     def read_exr_fnc(self, fname_img):
         # to read grayscale exr images
 
@@ -147,6 +150,7 @@ class ReadImgDir():
 
 
 if __name__ == '__main__':
+    # I assume that the dataset images are stored in a directory, already separated in train and test dataset.
 
     list_objname = ['armadillo', 'buddha', 'bun', 'bunny', 'bust', 'cap', 'cube', 'dragon', 'lucy', 'star_smooth']
     # list_objname = ['d36','d44','d54','d67','d82','d100','d122','d150','d184','d225','d276']
@@ -154,15 +158,20 @@ if __name__ == '__main__':
     # list_objname = ['d276']
     list_mask_val = [0, 0, 1, 0, 0, 0, 0, 0, 0, 1]
     path_dir = '/media/mswym/SSD-PGU3/database/translucent_data_che/'
-    path_dir_model = '/media/mswym/SSD-PGU3/database/results_translucent_2022/model_objects_notnormalize/'
+    path_dir_model = '/media/mswym/SSD-PGU3/database/results_translucent_220303/model_objects_tonemap/'
 
-    for ind_obj in list_objname):
+    for ind_obj in list_objname:
+        # packing the training dataset from the directory
         path_img = path_dir + 'split_objects/' + ind_obj + '/*.exr'
-        # path_img = path_dir + 'split_objects/test_' + list_objname[ind_obj] + '/*.exr'
         path_mask = path_dir + 'mask/' + ind_obj + '.exr'
-
         fname_save_binary = path_dir_model + 'che_03112021_1500train_' + ind_obj + '.binary'
-        # fname_save_binary = path_dir_model+'che_03112021_300test_'+ list_objname[ind_obj] + '.binary'
 
-        val_dataset = MyDatasetDir(path_img, path_mask=path_mask, val_mask=ind_obj, transform1=None,
+        val_dataset_train = MyDatasetDir(path_img, path_mask=path_mask, val_mask=ind_obj, transform1=None,
+                                        flag_hdr=True, fname_save=fname_save_binary)
+
+        # packing the test dataset from the directory
+        path_img = path_dir + 'split_objects/test_' + ind_obj + '/*.exr'
+        fname_save_binary = path_dir_model + 'che_03112021_300test_' + ind_obj + '.binary'
+
+        val_dataset_test = MyDatasetDir(path_img, path_mask=path_mask, val_mask=ind_obj, transform1=None,
                                         flag_hdr=True, fname_save=fname_save_binary)
