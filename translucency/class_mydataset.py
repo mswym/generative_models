@@ -64,10 +64,8 @@ class MyDatasetBinary(torch.utils.data.Dataset):
         return self.datanum
 
     def __getitem__(self, idx):
-        out_data = self.dataset[idx]
-        # out_data = torch.from_numpy(out_data).float()
+        out_data = self.dataset[idx].convert('RGB')
         out_label = self.label[idx]
-        # out_label = torch.from_numpy(out_label).long()
 
         if self.transform1:
             out_data = self.transform1(out_data)
@@ -164,14 +162,14 @@ if __name__ == '__main__':
         # packing the training dataset from the directory
         path_img = path_dir + 'split_objects/' + ind_obj + '/*.exr'
         path_mask = path_dir + 'mask/' + ind_obj + '.exr'
-        fname_save_binary = path_dir_model + 'che_03112021_1500train_' + ind_obj + '.binary'
+        fname_save_binary = path_dir_model + 'che_220322_1500train_' + ind_obj + '.binary'
 
         val_dataset_train = MyDatasetDir(path_img, path_mask=path_mask, val_mask=ind_obj, transform1=None,
                                         flag_hdr=True, fname_save=fname_save_binary)
 
         # packing the test dataset from the directory
         path_img = path_dir + 'split_objects/test_' + ind_obj + '/*.exr'
-        fname_save_binary = path_dir_model + 'che_03112021_300test_' + ind_obj + '.binary'
+        fname_save_binary = path_dir_model + 'che_220322_300test_' + ind_obj + '.binary'
 
         val_dataset_test = MyDatasetDir(path_img, path_mask=path_mask, val_mask=ind_obj, transform1=None,
                                         flag_hdr=True, fname_save=fname_save_binary)
