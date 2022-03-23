@@ -1,6 +1,9 @@
 # this code is edited from pytorch lightning code.
 # https://github.com/PyTorchLightning/lightning-bolts/blob/master/pl_bolts/models/autoencoders/basic_vae/basic_vae_module.py
 
+# I also added/edited the codes from AntixK/Pytorch-VAE repository.
+# https://github.com/AntixK/PyTorch-VAE
+
 import urllib.parse
 from argparse import ArgumentParser
 
@@ -16,6 +19,7 @@ from pl_bolts.models.autoencoders.components import (
     resnet50_decoder,
     resnet50_encoder,
 )
+import matplotlib.pyplot as plt
 
 
 class VAE(LightningModule):
@@ -45,6 +49,7 @@ class VAE(LightningModule):
         kl_coeff: float = 0.1,
         latent_dim: int = 256,
         lr: float = 1e-4,
+        val_losses: dict = None,
         **kwargs,
     ):
         """
@@ -136,13 +141,24 @@ class VAE(LightningModule):
 
     def training_step(self, batch, batch_idx):
         loss, logs = self.step(batch, batch_idx)
-        self.log_dict({f"train_{k}": v for k, v in logs.items()}, on_step=True, on_epoch=False)
+        self.log_dict({f"train_{k}": v for k, v in logs.items()},
+                      prog_bar=True,
+                      logger=True,
+                      on_step=True,
+                      on_epoch=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
         loss, logs = self.step(batch, batch_idx)
         self.log_dict({f"val_{k}": v for k, v in logs.items()})
         return loss
+
+    def validation_end(self, outputs):
+        # OPTIONAL
+        avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
+        tensorboard_logs = {'val_loss': avg_loss}
+        self.val_losses.append(avg_loss)
+        return {'avg_val_loss': avg_loss, 'log': tensorboard_logs}
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=self.lr)
