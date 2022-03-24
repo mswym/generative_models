@@ -20,9 +20,10 @@ from pl_bolts.models.autoencoders.components import (
     resnet50_encoder,
 )
 import matplotlib.pyplot as plt
+import copy
 
 
-class VAE_resnet(LightningModule):
+class VAE_vanilla(LightningModule):
     """Standard VAE with Gaussian Prior and approx posterior.
     Model is available pretrained on different datasets:
     Example::
@@ -40,17 +41,19 @@ class VAE_resnet(LightningModule):
     }
 
     def __init__(
-        self,
-        input_height: int,
-        enc_type: str = "resnet18",
-        first_conv: bool = False,
-        maxpool1: bool = False,
-        enc_out_dim: int = 512,
-        kl_coeff: float = 0.1,
-        latent_dim: int = 256,
-        lr: float = 1e-4,
-        val_losses: list = None,
-        **kwargs,
+            self,
+            input_height: int,
+            input_channels: int,
+            hidden_dims: list = None,
+            enc_type: str = "resnet18",
+            first_conv: bool = False,
+            maxpool1: bool = False,
+            enc_out_height: int = 4,
+            kl_coeff: float = 0.1,
+            latent_dim: int = 256,
+            lr: float = 1e-4,
+            val_losses: list = None,
+            **kwargs,
     ):
         """
         Args:
@@ -72,47 +75,92 @@ class VAE_resnet(LightningModule):
 
         self.lr = lr
         self.kl_coeff = kl_coeff
-        self.enc_out_dim = enc_out_dim
         self.latent_dim = latent_dim
         self.input_height = input_height
         self.val_losses = val_losses
 
-        valid_encoders = {
-            "resnet18": {
-                "enc": resnet18_encoder,
-                "dec": resnet18_decoder,
-            },
-            "resnet50": {
-                "enc": resnet50_encoder,
-                "dec": resnet50_decoder,
-            },
-        }
+        if hidden_dims is None:
+            hidden_dims = [32, 64, 128, 256, 512]
+        self.enc_out_height = enc_out_height
+        self.enc_out_dim = hidden_dims[-1]
+        self.hidden_dims = hidden_dims
 
-        if enc_type not in valid_encoders:
-            self.encoder = resnet18_encoder(first_conv, maxpool1)
-            self.decoder = resnet18_decoder(self.latent_dim, self.input_height, first_conv, maxpool1)
-        else:
-            self.encoder = valid_encoders[enc_type]["enc"](first_conv, maxpool1)
-            self.decoder = valid_encoders[enc_type]["dec"](self.latent_dim, self.input_height, first_conv, maxpool1)
+        self.encoder = self.build_encoder(input_channels)
+        self.fc_mu = nn.Linear(hidden_dims[-1]*enc_out_height*enc_out_height, self.latent_dim)
+        self.fc_var = nn.Linear(hidden_dims[-1]*enc_out_height*enc_out_height, self.latent_dim)
+        self.decoder_input = nn.Linear(latent_dim, hidden_dims[-1]*enc_out_height*enc_out_height)
+        self.hidden_dims.reverse()
+        self.decoder = self.build_decoder()
+        self.final_layer = self.build_decoder_finallayer()
+        self.hidden_dims.reverse()
 
-        self.fc_mu = nn.Linear(self.enc_out_dim, self.latent_dim)
-        self.fc_var = nn.Linear(self.enc_out_dim, self.latent_dim)
+    def build_encoder(self, input_channels):
+        # Build Encoder
+        modules = []
+        for h_dim in self.hidden_dims:
+            modules.append(
+                nn.Sequential(
+                    nn.Conv2d(input_channels, out_channels=h_dim,
+                              kernel_size=3, stride=2, padding=1),
+                    nn.BatchNorm2d(h_dim),
+                    nn.LeakyReLU())
+            )
+            input_channels = h_dim
 
+        return nn.Sequential(*modules)
 
+    def build_decoder(self):
+        modules = []
+        for i in range(len(self.hidden_dims) - 1):
+            modules.append(
+                nn.Sequential(
+                    nn.ConvTranspose2d(self.hidden_dims[i],
+                                       self.hidden_dims[i + 1],
+                                       kernel_size=3,
+                                       stride=2,
+                                       padding=1,
+                                       output_padding=1),
+                    nn.BatchNorm2d(self.hidden_dims[i + 1]),
+                    nn.LeakyReLU())
+            )
+        return nn.Sequential(*modules)
+
+    def build_decoder_finallayer(self):
+        module = nn.Sequential(
+                nn.ConvTranspose2d(self.hidden_dims[-1],
+                               self.hidden_dims[-1],
+                               kernel_size=3,
+                               stride=2,
+                               padding=1,
+                               output_padding=1),
+                nn.BatchNorm2d(self.hidden_dims[-1]),
+                nn.LeakyReLU(),
+                nn.Conv2d(self.hidden_dims[-1], out_channels=3,
+                      kernel_size=3, padding=1),
+                nn.Tanh())
+        return module
+
+    def decoders(self,z):
+        x = self.decoder_input(z)
+        x = x.view(-1, self.enc_out_dim, self.enc_out_height, self.enc_out_height)
+        x = self.decoder(x)
+        return self.final_layer(x)
 
     def forward(self, x):
         x = self.encoder(x)
+        x = torch.flatten(x, start_dim=1) # due to manual encoder
         mu = self.fc_mu(x)
         log_var = self.fc_var(x)
         p, q, z = self.sample(mu, log_var)
-        return self.decoder(z)
+        return self.decoders(z)
 
     def _run_step(self, x):
         x = self.encoder(x)
+        x = torch.flatten(x, start_dim=1) # due to manual encoder
         mu = self.fc_mu(x)
         log_var = self.fc_var(x)
         p, q, z = self.sample(mu, log_var)
-        return z, self.decoder(z), p, q
+        return z, self.decoders(z), p, q
 
     def sample(self, mu, log_var):
         std = torch.exp(log_var / 2)
@@ -148,14 +196,19 @@ class VAE_resnet(LightningModule):
                       on_step=True,
                       on_epoch=True)
         tensorboard_logs = {'train_loss': loss}
-        return  {'loss': loss, 'log': tensorboard_logs}
+        return {'loss': loss, 'log': tensorboard_logs}
 
     def validation_step(self, batch, batch_idx):
         loss, logs = self.step(batch, batch_idx)
         self.log_dict({f"val_{k}": v for k, v in logs.items()})
-        self.val_losses.append(loss)
-        tensorboard_logs = {'val_loss': loss}
-        return {'val_loss': loss, 'log': tensorboard_logs}
+        return loss
+
+    def validation_end(self, outputs):
+        # OPTIONAL
+        avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
+        self.val_losses.append(avg_loss)
+        tensorboard_logs = {'val_loss': avg_loss}
+        return {'avg_val_loss': avg_loss, 'log': tensorboard_logs}
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=self.lr)
