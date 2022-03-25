@@ -21,9 +21,10 @@ from pl_bolts.models.autoencoders.components import (
 )
 import matplotlib.pyplot as plt
 import copy
+from torch.autograd import Variable
 
 
-class VAE_vanilla(LightningModule):
+class VAE_noncnn(LightningModule):
     """Standard VAE with Gaussian Prior and approx posterior.
     Model is available pretrained on different datasets:
     Example::
@@ -45,10 +46,6 @@ class VAE_vanilla(LightningModule):
             input_height: int,
             input_channels: int,
             hidden_dims: list = None,
-            enc_type: str = "resnet18",
-            first_conv: bool = False,
-            maxpool1: bool = False,
-            enc_out_height: int = 4,
             kl_coeff: float = 0.1,
             latent_dim: int = 256,
             lr: float = 1e-4,
@@ -80,72 +77,22 @@ class VAE_vanilla(LightningModule):
         self.val_losses = val_losses
 
         if hidden_dims is None:
-            hidden_dims = [32, 64, 128, 256, 512, 1024]
-        self.enc_out_height = enc_out_height
-        self.enc_out_dim = hidden_dims[-1]
-        self.hidden_dims = hidden_dims
+            hidden_dims = [400]
         self.input_channels = input_channels
 
-        self.encoder = self.build_encoder(self.input_channels)
-        self.fc_mu = nn.Linear(hidden_dims[-1]*enc_out_height*enc_out_height, self.latent_dim)
-        self.fc_var = nn.Linear(hidden_dims[-1]*enc_out_height*enc_out_height, self.latent_dim)
-        self.decoder_input = nn.Linear(latent_dim, hidden_dims[-1]*enc_out_height*enc_out_height)
-        self.hidden_dims.reverse()
-        self.decoder = self.build_decoder()
-        self.final_layer = self.build_decoder_finallayer()
-        self.hidden_dims.reverse()
+        self.encoder = nn.Sequential(
+            nn.Linear(self.input_height * self.input_height * input_channels, hidden_dims[0]),
+            nn.ReLU(True))
 
-    def build_encoder(self, input_channels):
-        # Build Encoder
-        modules = []
-        for h_dim in self.hidden_dims:
-            modules.append(
-                nn.Sequential(
-                    nn.Conv2d(input_channels, out_channels=h_dim,
-                              kernel_size=3, stride=2, padding=1),
-                    nn.BatchNorm2d(h_dim),
-                    nn.LeakyReLU())
-            )
-            input_channels = h_dim
+        self.fc_mu = nn.Linear(hidden_dims[0], self.latent_dim)
+        self.fc_var = nn.Linear(hidden_dims[0], self.latent_dim)
 
-        return nn.Sequential(*modules)
 
-    def build_decoder(self):
-        modules = []
-        for i in range(len(self.hidden_dims) - 1):
-            modules.append(
-                nn.Sequential(
-                    nn.ConvTranspose2d(self.hidden_dims[i],
-                                       self.hidden_dims[i + 1],
-                                       kernel_size=3,
-                                       stride=2,
-                                       padding=1,
-                                       output_padding=1),
-                    nn.BatchNorm2d(self.hidden_dims[i + 1]),
-                    nn.LeakyReLU())
-            )
-        return nn.Sequential(*modules)
-
-    def build_decoder_finallayer(self):
-        module = nn.Sequential(
-                nn.ConvTranspose2d(self.hidden_dims[-1],
-                               self.hidden_dims[-1],
-                               kernel_size=3,
-                               stride=2,
-                               padding=1,
-                               output_padding=1),
-                nn.BatchNorm2d(self.hidden_dims[-1]),
-                nn.LeakyReLU(),
-                nn.Conv2d(self.hidden_dims[-1], out_channels=3,
-                      kernel_size=3, padding=1),
-                nn.Tanh())
-        return module
-
-    def decoders(self,z):
-        x = self.decoder_input(z)
-        x = x.view(-1, self.enc_out_dim, self.enc_out_height, self.enc_out_height)
-        x = self.decoder(x)
-        return self.final_layer(x)
+        self.decoder = nn.Sequential(
+            nn.Linear(self.latent_dim, hidden_dims[0]),
+            nn.ReLU(True),
+            nn.Linear(hidden_dims[0], self.input_height * self.input_height * input_channels),
+            nn.Sigmoid())
 
     def forward(self, x):
         x = self.encoder(x)
@@ -153,7 +100,8 @@ class VAE_vanilla(LightningModule):
         mu = self.fc_mu(x)
         log_var = self.fc_var(x)
         p, q, z = self.sample(mu, log_var)
-        return self.decoders(z)
+        x_hat = self.decoder(z)
+        return x_hat
 
     def _run_step(self, x):
         x = self.encoder(x)
@@ -161,20 +109,24 @@ class VAE_vanilla(LightningModule):
         mu = self.fc_mu(x)
         log_var = self.fc_var(x)
         p, q, z = self.sample(mu, log_var)
-        return z, self.decoders(z), p, q
+        return z, self.decoder(z), p, q
 
     def sample(self, mu, log_var):
         std = torch.exp(log_var / 2)
         p = torch.distributions.Normal(torch.zeros_like(mu), torch.ones_like(std))
         q = torch.distributions.Normal(mu, std)
-        z = q.rsample()
+        z = Variable(torch.cuda.FloatTensor(std.size()).normal_())
+        z.mul(std).add(mu)
+
         return p, q, z
 
     def step(self, batch, batch_idx):
         x, y = batch
+        x = x.view(-1, self.input_height * self.input_height * self.input_channels)
         z, x_hat, p, q = self._run_step(x)
 
-        recon_loss = F.mse_loss(x_hat, x, reduction="mean")
+        #recon_loss = F.mse_loss(x_hat, x, reduction="mean")
+        recon_loss = F.binary_cross_entropy(x_hat, x, reduction="mean")
 
         kl = torch.distributions.kl_divergence(q, p)
         kl = kl.mean()

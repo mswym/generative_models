@@ -63,8 +63,8 @@ class MyDatasetBinary(torch.utils.data.Dataset):
         return self.datanum
 
     def __getitem__(self, idx):
-        out_data = self.dataset[idx].convert('RGB')
-        #out_data = self.dataset[idx]
+        #out_data = self.dataset[idx].convert('RGB')
+        out_data = self.dataset[idx]
         out_label = self.label[idx]
 
         if self.transform1:

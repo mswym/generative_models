@@ -1,6 +1,7 @@
 import pytorch_lightning as pl
-from vae_vanilla_resnet import VAE_resnet
-from vae_vanilla import VAE_vanilla
+#from vae_vanilla_resnet import VAE_resnet
+#from vae_vanilla import VAE_vanilla
+from vae_noncnn import VAE_noncnn
 from class_mydataset import MyDatasetDir,MyDatasetBinary
 from torchvision import transforms
 from torch.utils.data import DataLoader, random_split
@@ -11,27 +12,33 @@ from torch.nn import functional as F
 
 def check_output(model,img,ind_img):
     model.eval()
-    with torch.no_grad():
-        img_hat = model.forward(img)
-        recon_loss = F.mse_loss(img_hat[ind_img], img[ind_img], reduction="mean")
-        print(recon_loss)
+    img = img.view(img.size()[0], -1)
+    img_hat = model.forward(img)
+    recon_loss = F.mse_loss(img_hat[ind_img], img[ind_img], reduction="mean")
+    print(recon_loss)
 
-        img_hat = img_hat.to('cpu').detach().numpy().transpose(0,2,3,1).copy()
-        plt.imshow(img_hat[ind_img])
-        plt.show()
+    img = img.view(img.size()[0], 1, 256, 256)
+    img_hat = img_hat.view(img_hat.size()[0], 1, 256, 256)
+    img_hat = img_hat.to('cpu').detach().numpy().transpose(0,2,3,1).copy()
+    plt.imshow(img_hat[ind_img], cmap=plt.get_cmap('gray'))
+    plt.show()
 
-        img = img.to('cpu').detach().numpy().transpose(0,2,3,1).copy()
-        plt.imshow(img[ind_img])
-        plt.show()
+    img = img.to('cpu').detach().numpy().transpose(0,2,3,1).copy()
+    plt.imshow(img[ind_img], cmap=plt.get_cmap('gray'))
+    plt.show()
+    print('finished')
+
 
 if __name__ == '__main__':
     list_objname = ['armadillo', 'buddha', 'bun', 'bunny', 'bust', 'cap', 'cube', 'dragon', 'lucy', 'star_smooth', 'sphere']
     path_dir_save = '/media/mswym/SSD-PGU3/database/results_translucent_220303/model_objects_tonemap/'
-    path_checkpoint = "/media/mswym/SSD-PGU3/database/results_translucent_220303/model_objects_tonemap/armadillo_latent20_logs/version_6/checkpoints/epoch=101-step=1427.ckpt"
+    #path_checkpoint = "/media/mswym/SSD-PGU3/database/results_translucen" \
+    #                  "t_220303/model_objects_tonemap/armadillo_latent20_logs/version_25/checkpoints/epoch=18-step=265.ckpt"
+    path_checkpoint = "../armadillo_latent20_logs/version_1/checkpoints/epoch=199-step=2799.ckpt"
     ind_obj = 0
     ind_img = 80
 
-    num_epochs = 300
+    num_epochs = 100
     batch_size = 100
     learning_rate = 1e-4
     size_input = np.array([256, 256, 3])
@@ -53,5 +60,5 @@ if __name__ == '__main__':
     data = next(iter(test_dataloader))
     img = data[0]
 
-    model = VAE_vanilla.load_from_checkpoint(checkpoint_path=path_checkpoint)
+    model = VAE_noncnn.load_from_checkpoint(checkpoint_path=path_checkpoint)
     check_output(model, img, ind_img)
