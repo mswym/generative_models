@@ -115,10 +115,9 @@ class VAE_noncnn(LightningModule):
         std = torch.exp(log_var / 2)
         p = torch.distributions.Normal(torch.zeros_like(mu), torch.ones_like(std))
         q = torch.distributions.Normal(mu, std)
-        z = Variable(torch.cuda.FloatTensor(std.size()).normal_())
-        z.mul(std).add(mu)
+        z = Variable(torch.cuda.FloatTensor(std.size()).normal_()).cuda()
 
-        return p, q, z
+        return p, q, z.mul(std).add(mu)
 
     def step(self, batch, batch_idx):
         x, y = batch
