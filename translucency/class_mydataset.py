@@ -22,13 +22,17 @@ class MyDatasetDir(torch.utils.data.Dataset):
         self.transform1 = transform1
         self.flag_hdr = flag_hdr
         class_imgs = ReadImgDir(mypath, path_mask, val_mask, flag_hdr=True)
-        self.dataset, self.label = class_imgs.read_all_img()
+        self.dataset, self.label, self.mean_img, self.std_img = class_imgs.read_all_img()
 
         with open(fname_save, 'wb') as f:
             pickle.dump(self.dataset, f)
         tmp_dir, tmp_file = os.path.split(fname_save)
         with open(tmp_dir + '/label_' + tmp_file, 'wb') as f:
             pickle.dump(self.label, f)
+        with open(tmp_dir + '/mean_' + tmp_file, 'wb') as f:
+            pickle.dump(self.mean_img, f)
+        with open(tmp_dir + '/std_' + tmp_file, 'wb') as f:
+            pickle.dump(self.std_img, f)
         self.datanum = len(self.dataset)
 
     def __len__(self):
@@ -56,6 +60,10 @@ class MyDatasetBinary(torch.utils.data.Dataset):
         tmp_dir, tmp_file = os.path.split(mypath)
         with open(tmp_dir + '/label_' + tmp_file, 'rb') as f:
             self.label = pickle.load(f)
+        with open(tmp_dir + '/mean_' + tmp_file, 'rb') as f:
+            self.mean_img = pickle.load(f)
+        with open(tmp_dir + '/std_' + tmp_file, 'rb') as f:
+            self.std_img = pickle.load(f)
 
         self.datanum = len(self.dataset)
 
@@ -92,12 +100,21 @@ class ReadImgDir():
         # print(list_img)
         list_img = []
         list_label = []
+        mean_img = []
+        std_img = []
         if self.flag_hdr:
             for i_list in range(self.num_img):
                 print(self.fname_list_img[i_list])
                 img = self.read_exr_fnc(self.fname_list_img[i_list])  # size is m x n  here only grayscale
                 img = self.apply_tonemap(img)
                 img = 255*img * self.maskimg
+                if len(img.shape):
+                    mean_img.append(np.mean(img))
+                    std_img.append(np.std(img))
+                else:
+                    mean_img.append(np.mean(img, 2))
+                    std_img.append(np.std(img, 2))
+
                 img = Image.fromarray(img.astype('uint8'))
 
                 tmp_label1 = re.findall(r'\d+', self.fname_list_img[i_list])
@@ -118,7 +135,11 @@ class ReadImgDir():
                 img = Image.open(self.fname_list_img[i_list])
                 list_img.append(img)
                 list_label.append(self.fname_list_img[i_list])
-        return list_img, list_label
+
+        mean_img = np.mean(mean_img)
+        std_img = np.mean(std_img)
+
+        return list_img, list_label, mean_img, std_img
 
     def apply_tonemap(self, img, eps=10**(-10), param_a=1):
         # a global tone mapping using geometric mean.
