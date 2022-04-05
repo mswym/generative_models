@@ -71,8 +71,8 @@ class MyDatasetBinary(torch.utils.data.Dataset):
         return self.datanum
 
     def __getitem__(self, idx):
-        #out_data = self.dataset[idx].convert('RGB')
-        out_data = self.dataset[idx]
+        out_data = self.dataset[idx].convert('RGB')
+        #out_data = self.dataset[idx]
         out_label = self.label[idx]
 
         if self.transform1:
@@ -171,10 +171,10 @@ class ReadImgDir():
 if __name__ == '__main__':
     # I assume that the dataset images are stored in a directory, already separated in train and test dataset.
 
-    #list_objname = ['armadillo', 'buddha', 'bun', 'bunny', 'bust', 'cap', 'cube', 'dragon', 'lucy', 'star_smooth']
-    list_objname = ['sphere']
-    #list_mask_val = [0, 0, 1, 0, 0, 0, 0, 0, 0, 1]
-    list_mask_val = [1]
+    list_objname = ['armadillo', 'buddha', 'bun', 'bunny', 'bust', 'cap', 'cube', 'dragon', 'lucy', 'star_smooth']
+    #list_objname = ['sphere']
+    list_mask_val = [0, 0, 1, 0, 0, 0, 0, 0, 0, 1]
+    #list_mask_val = [1]
     path_dir = '/media/mswym/SSD-PGU3/database/translucent_data_che/'
     path_dir_model = '/media/mswym/SSD-PGU3/database/results_translucent_220303/model_objects_tonemap/'
 

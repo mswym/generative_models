@@ -9,6 +9,18 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torch
 from torch.nn import functional as F
+import os
+import pickle
+
+
+def load_mean_std(mypath):
+    # assuming 8bit input values and output 0-1 float values.
+    tmp_dir, tmp_file = os.path.split(mypath)
+    with open(tmp_dir + '/mean_' + tmp_file, 'rb') as f:
+        mean_img = pickle.load(f)
+    with open(tmp_dir + '/std_' + tmp_file, 'rb') as f:
+        std_img = pickle.load(f)
+    return mean_img/255, std_img/255
 
 def check_output(model,img,ind_img):
     model.eval()

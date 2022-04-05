@@ -92,7 +92,7 @@ class VAE_noncnn(LightningModule):
             nn.Linear(self.latent_dim, hidden_dims[0]),
             nn.ReLU(True),
             nn.Linear(hidden_dims[0], self.input_height * self.input_height * input_channels),
-            nn.Sigmoid())
+            nn.Tanh())
 
     def forward(self, x):
         x = self.encoder(x)
@@ -124,8 +124,8 @@ class VAE_noncnn(LightningModule):
         x = x.view(-1, self.input_height * self.input_height * self.input_channels)
         z, x_hat, p, q = self._run_step(x)
 
-        #recon_loss = F.mse_loss(x_hat, x, reduction="mean")
-        recon_loss = F.binary_cross_entropy(x_hat, x, reduction="mean")
+        recon_loss = F.mse_loss(x_hat, x, reduction="mean")
+        #recon_loss = F.binary_cross_entropy(x_hat, x, reduction="mean")
 
         kl = torch.distributions.kl_divergence(q, p)
         kl = kl.mean()

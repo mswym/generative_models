@@ -15,6 +15,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pickle
 
+from utils import *
+
 if __name__ == '__main__':
     num_epochs = 200
 
@@ -27,14 +29,11 @@ if __name__ == '__main__':
     #list_objname = ['armadillo', 'buddha', 'bun', 'bunny', 'bust', 'cap', 'cube', 'dragon', 'lucy', 'star_smooth',
     #                'sphere']
     list_objname = ['armadillo']
-    #path_dir_save = '/media/mswym/SSD-PGU3/database/results_translucent_220303/model_objects_tonemap/'
-    path_dir_save = '../'
+    path_dir_save = '/media/mswym/SSD-PGU3/database/results_translucent_220303/model_objects_tonemap/'
+    #path_dir_save = '../'
 
 
-    img_transform = transforms.Compose([
-        transforms.Resize((size_input[0], size_input[1])),
-        transforms.ToTensor()
-    ])
+
 
     for ind_obj in list_objname:
         log = []
@@ -43,7 +42,19 @@ if __name__ == '__main__':
             save_dir=path_dir_save,
             name=ind_obj + '_latent' + str(latent_dim) + "_logs/")
 
+        #load mean information and make transforms
+        mean_img, std_img = load_mean_std(mypath)
+        img_transform = transforms.Compose([
+            transforms.Resize((size_input[0], size_input[1])),
+            transforms.ToTensor(),
+            transforms.Normalize(
+                mean=[mean_img, mean_img, mean_img],
+                std=[std_img, std_img, std_img],
+            )
+        ])
+        #load dataset while normalizing
         dataset = MyDatasetBinary(mypath, transform1=img_transform, flag_hdr=True)
+
         train_data, val_data = random_split(dataset, [int(len(dataset) * ratio_trainval),
                                                       int(len(dataset) - len(dataset) * ratio_trainval)])
         train_dataloader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
