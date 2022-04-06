@@ -82,7 +82,7 @@ class VAE_noncnn(LightningModule):
 
         self.encoder = nn.Sequential(
             nn.Linear(self.input_height * self.input_height * input_channels, hidden_dims[0]),
-            nn.ReLU(True))
+            nn.LeakyReLU(True))
 
         self.fc_mu = nn.Linear(hidden_dims[0], self.latent_dim)
         self.fc_var = nn.Linear(hidden_dims[0], self.latent_dim)
@@ -90,7 +90,7 @@ class VAE_noncnn(LightningModule):
 
         self.decoder = nn.Sequential(
             nn.Linear(self.latent_dim, hidden_dims[0]),
-            nn.ReLU(True),
+            nn.LeakyReLU(True),
             nn.Linear(hidden_dims[0], self.input_height * self.input_height * input_channels),
             nn.Tanh())
 
@@ -115,9 +115,8 @@ class VAE_noncnn(LightningModule):
         std = torch.exp(log_var / 2)
         p = torch.distributions.Normal(torch.zeros_like(mu), torch.ones_like(std))
         q = torch.distributions.Normal(mu, std)
-        z = Variable(torch.cuda.FloatTensor(std.size()).normal_()).cuda()
-
-        return p, q, z.mul(std).add(mu)
+        z = q.rsample()
+        return p, q, z
 
     def step(self, batch, batch_idx):
         x, y = batch

@@ -60,7 +60,7 @@ if __name__ == '__main__':
         train_dataloader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
         val_dataloader = DataLoader(val_data, batch_size=batch_size, shuffle=True)
 
-        model = VAE_noncnn(input_height=size_input[0], input_channels=1, latent_dim=latent_dim, lr=learning_rate, val_losses=log)
+        model = VAE_noncnn(input_height=size_input[0], input_channels=3, latent_dim=latent_dim, lr=learning_rate, val_losses=log)
         trainer = pl.Trainer(gpus=1, max_epochs=num_epochs, logger=tb_logger)
         trainer.fit(model, train_dataloader, val_dataloader)
 

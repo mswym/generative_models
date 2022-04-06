@@ -14,6 +14,7 @@ import Imath
 import cv2
 import re
 
+
 # these classes consider reading the images rendered by Che et al.(2020)
 
 class MyDatasetDir(torch.utils.data.Dataset):
@@ -72,7 +73,7 @@ class MyDatasetBinary(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         out_data = self.dataset[idx].convert('RGB')
-        #out_data = self.dataset[idx]
+        # out_data = self.dataset[idx]
         out_label = self.label[idx]
 
         if self.transform1:
@@ -83,7 +84,7 @@ class MyDatasetBinary(torch.utils.data.Dataset):
 
 
 class ReadImgDir():
-    def __init__(self, path_dir, path_mask, val_mask, flag_hdr=False, val_gamma = 2.2):
+    def __init__(self, path_dir, path_mask, val_mask, flag_hdr=False, val_gamma=2.2):
         self.fname_list_img = glob.glob(path_dir)
         self.fname_list_img.sort()
         self.flag_hdr = flag_hdr
@@ -106,8 +107,8 @@ class ReadImgDir():
             for i_list in range(self.num_img):
                 print(self.fname_list_img[i_list])
                 img = self.read_exr_fnc(self.fname_list_img[i_list])  # size is m x n  here only grayscale
-                img = self.apply_tonemap(img)
-                img = 255*img * self.maskimg
+                img = self.apply_tonemap_exposure(img)
+                img = 255 * img * self.maskimg
                 if len(img.shape):
                     mean_img.append(np.mean(img))
                     std_img.append(np.std(img))
@@ -141,11 +142,20 @@ class ReadImgDir():
 
         return list_img, list_label, mean_img, std_img
 
-    def apply_tonemap(self, img, eps=10**(-10), param_a=1):
+    def apply_tonemap_exposure(self, img, param_expo=6, mean_scene=0.036, gamma=2.2):
+        # a simple exposure and gamma tonemapping.
+        # precomputed the mean of background.
+        key = param_expo * mean_scene
+        img = img / key
+        img[np.where(img > 1)] = 1
+        return img ** (1 / gamma)
+
+    def apply_tonemap_global(self, img, eps=10 ** (-10), param_a=1):
         # a global tone mapping using geometric mean.
-        key = np.exp(np.mean(np.log(eps+img)))
-        img = (param_a/key) * img
-        return img/(1+img)
+        key = np.exp(np.mean(np.log(eps + img)))
+        img = (param_a / key) * img
+        return img / (1 + img)
+
     def read_exr_fnc(self, fname_img):
         # to read grayscale exr images
 
@@ -171,10 +181,10 @@ class ReadImgDir():
 if __name__ == '__main__':
     # I assume that the dataset images are stored in a directory, already separated in train and test dataset.
 
-    list_objname = ['armadillo', 'buddha', 'bun', 'bunny', 'bust', 'cap', 'cube', 'dragon', 'lucy', 'star_smooth']
-    #list_objname = ['sphere']
+    list_objname = ['armadillo', 'buddha', 'bun', 'bunny', 'bust', 'cap', 'cube', 'dragon', 'lucy', 'star_smooth', 'sphere']
+    # list_objname = ['sphere']
     list_mask_val = [0, 0, 1, 0, 0, 0, 0, 0, 0, 1]
-    #list_mask_val = [1]
+    # list_mask_val = [1]
     path_dir = '/media/mswym/SSD-PGU3/database/translucent_data_che/'
     path_dir_model = '/media/mswym/SSD-PGU3/database/results_translucent_220303/model_objects_tonemap/'
 
@@ -184,12 +194,12 @@ if __name__ == '__main__':
         path_mask = path_dir + 'mask/' + ind_obj + '.exr'
         fname_save_binary = path_dir_model + 'che_220322_1500train_' + ind_obj + '.binary'
 
-        val_dataset_train = MyDatasetDir(path_img, path_mask=path_mask, val_mask=list_mask_val[i], transform1=None,
-                                        flag_hdr=True, fname_save=fname_save_binary)
+        val_dataset_train = MyDatasetDir(path_img, path_mask=0, val_mask=0, transform1=None,
+                                         flag_hdr=True, fname_save=fname_save_binary)
 
         # packing the test dataset from the directory
         path_img = path_dir + 'split_objects/test_' + ind_obj + '/*.exr'
         fname_save_binary = path_dir_model + 'che_220322_300test_' + ind_obj + '.binary'
 
-        val_dataset_test = MyDatasetDir(path_img, path_mask=path_mask, val_mask=list_mask_val[i], transform1=None,
+        val_dataset_test = MyDatasetDir(path_img, path_mask=0, val_mask=0, transform1=None,
                                         flag_hdr=True, fname_save=fname_save_binary)

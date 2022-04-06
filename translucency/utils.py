@@ -46,11 +46,11 @@ if __name__ == '__main__':
     path_dir_save = '/media/mswym/SSD-PGU3/database/results_translucent_220303/model_objects_tonemap/'
     #path_checkpoint = "/media/mswym/SSD-PGU3/database/results_translucen" \
     #                  "t_220303/model_objects_tonemap/armadillo_latent20_logs/version_25/checkpoints/epoch=18-step=265.ckpt"
-    path_checkpoint = "../armadillo_latent20_logs/version_1/checkpoints/epoch=199-step=2799.ckpt"
+    path_checkpoint = "/media/mswym/SSD-PGU3/database/results_translucent_220303/model_objects_tonemap//armadillo_latent20_logs/version_4/checkpoints/epoch=199-step=2799.ckpt"
     ind_obj = 0
     ind_img = 80
 
-    num_epochs = 100
+    num_epochs = 200
     batch_size = 100
     learning_rate = 1e-4
     size_input = np.array([256, 256, 3])
@@ -58,14 +58,19 @@ if __name__ == '__main__':
     latent_dim = 10
     log = []
 
-
-    img_transform = transforms.Compose([
-        transforms.Resize((size_input[0], size_input[1])),
-        transforms.ToTensor()
-    ])
     latent_dim = 20
 
     mypath = path_dir_save+'che_220322_1500train_'+list_objname[ind_obj] +'.binary'
+
+    mean_img, std_img = load_mean_std(mypath)
+    img_transform = transforms.Compose([
+        transforms.Resize((size_input[0], size_input[1])),
+        transforms.ToTensor(),
+        transforms.Normalize(
+            mean=[mean_img, mean_img, mean_img],
+            std=[std_img, std_img, std_img],
+        )
+    ])
 
     dataset = MyDatasetBinary(mypath, transform1=img_transform, flag_hdr=True)
     test_dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
