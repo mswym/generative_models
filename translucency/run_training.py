@@ -18,13 +18,13 @@ import pickle
 from utils import *
 
 if __name__ == '__main__':
-    num_epochs = 200
+    num_epochs = 100
 
     batch_size = 100
-    learning_rate = 1e-3
-    size_input = np.array([256, 256, 1])
+    learning_rate = 1e-4
+    size_input = np.array([256, 256, 3])
     ratio_trainval = 0.9
-    latent_dim = 20
+    latent_dim = 10
 
     #list_objname = ['armadillo', 'buddha', 'bun', 'bunny', 'bust', 'cap', 'cube', 'dragon', 'lucy', 'star_smooth',
     #                'sphere']
@@ -46,11 +46,7 @@ if __name__ == '__main__':
         mean_img, std_img = load_mean_std(mypath)
         img_transform = transforms.Compose([
             transforms.Resize((size_input[0], size_input[1])),
-            transforms.ToTensor(),
-            transforms.Normalize(
-                mean=[mean_img, mean_img, mean_img],
-                std=[std_img, std_img, std_img],
-            )
+            transforms.ToTensor()
         ])
         #load dataset while normalizing
         dataset = MyDatasetBinary(mypath, transform1=img_transform, flag_hdr=True)

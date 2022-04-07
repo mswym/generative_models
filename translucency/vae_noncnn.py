@@ -82,7 +82,7 @@ class VAE_noncnn(LightningModule):
 
         self.encoder = nn.Sequential(
             nn.Linear(self.input_height * self.input_height * input_channels, hidden_dims[0]),
-            nn.LeakyReLU(True))
+            nn.ReLU(True))
 
         self.fc_mu = nn.Linear(hidden_dims[0], self.latent_dim)
         self.fc_var = nn.Linear(hidden_dims[0], self.latent_dim)
@@ -90,9 +90,9 @@ class VAE_noncnn(LightningModule):
 
         self.decoder = nn.Sequential(
             nn.Linear(self.latent_dim, hidden_dims[0]),
-            nn.LeakyReLU(True),
+            nn.ReLU(True),
             nn.Linear(hidden_dims[0], self.input_height * self.input_height * input_channels),
-            nn.Tanh())
+            nn.Sigmoid())
 
     def forward(self, x):
         x = self.encoder(x)
@@ -104,8 +104,8 @@ class VAE_noncnn(LightningModule):
         return x_hat
 
     def _run_step(self, x):
+        x = torch.flatten(x, start_dim=1)
         x = self.encoder(x)
-        x = torch.flatten(x, start_dim=1) # due to manual encoder
         mu = self.fc_mu(x)
         log_var = self.fc_var(x)
         p, q, z = self.sample(mu, log_var)

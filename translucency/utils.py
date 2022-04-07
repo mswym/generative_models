@@ -3,6 +3,7 @@ import pytorch_lightning as pl
 #from vae_vanilla import VAE_vanilla
 from vae_noncnn import VAE_noncnn
 from class_mydataset import MyDatasetDir,MyDatasetBinary
+import torchvision
 from torchvision import transforms
 from torch.utils.data import DataLoader, random_split
 import numpy as np
@@ -29,14 +30,23 @@ def check_output(model,img,ind_img):
     recon_loss = F.mse_loss(img_hat[ind_img], img[ind_img], reduction="mean")
     print(recon_loss)
 
-    img = img.view(img.size()[0], 1, 256, 256)
-    img_hat = img_hat.view(img_hat.size()[0], 1, 256, 256)
+    img = img.view(img.size()[0], 3, 256, 256)
+    img_hat = img_hat.view(img_hat.size()[0], 3, 256, 256)
+
+    img_panel_hat = torchvision.utils.make_grid(img_hat)
+    img_panel_hat = img_panel_hat.to('cpu').detach().numpy().transpose(1,2,0).copy()
+    img_panel = torchvision.utils.make_grid(img)
+    img_panel = img_panel.to('cpu').detach().numpy().transpose(1,2,0).copy()
+
+
     img_hat = img_hat.to('cpu').detach().numpy().transpose(0,2,3,1).copy()
-    plt.imshow(img_hat[ind_img], cmap=plt.get_cmap('gray'))
+    plt.imshow(img_hat[ind_img], cmap=plt.get_cmap('gray'),vmin=0,vmax=1)
     plt.show()
 
-    img = img.to('cpu').detach().numpy().transpose(0,2,3,1).copy()
-    plt.imshow(img[ind_img], cmap=plt.get_cmap('gray'))
+
+    img = img.to('cpu').detach().numpy().\
+        transpose(0,2,3,1).copy()
+    plt.imshow(img[ind_img], cmap=plt.get_cmap('gray'),vmin=0,vmax=1)
     plt.show()
     print('finished')
 
@@ -46,8 +56,9 @@ if __name__ == '__main__':
     path_dir_save = '/media/mswym/SSD-PGU3/database/results_translucent_220303/model_objects_tonemap/'
     #path_checkpoint = "/media/mswym/SSD-PGU3/database/results_translucen" \
     #                  "t_220303/model_objects_tonemap/armadillo_latent20_logs/version_25/checkpoints/epoch=18-step=265.ckpt"
-    path_checkpoint = "/media/mswym/SSD-PGU3/database/results_translucent_220303/model_objects_tonemap//armadillo_latent20_logs/version_4/checkpoints/epoch=199-step=2799.ckpt"
+    path_checkpoint = "/media/mswym/SSD-PGU3/database/results_translucent_220303/model_objects_tonemap//armadillo_latent5_logs/version_0/checkpoints/epoch=99-step=1399.ckpt"
     ind_obj = 0
+
     ind_img = 80
 
     num_epochs = 200
@@ -58,18 +69,14 @@ if __name__ == '__main__':
     latent_dim = 10
     log = []
 
-    latent_dim = 20
+    latent_dim = 100
 
     mypath = path_dir_save+'che_220322_1500train_'+list_objname[ind_obj] +'.binary'
 
     mean_img, std_img = load_mean_std(mypath)
     img_transform = transforms.Compose([
         transforms.Resize((size_input[0], size_input[1])),
-        transforms.ToTensor(),
-        transforms.Normalize(
-            mean=[mean_img, mean_img, mean_img],
-            std=[std_img, std_img, std_img],
-        )
+        transforms.ToTensor()
     ])
 
     dataset = MyDatasetBinary(mypath, transform1=img_transform, flag_hdr=True)
