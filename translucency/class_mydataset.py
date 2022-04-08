@@ -183,10 +183,10 @@ if __name__ == '__main__':
 
     list_objname = ['armadillo', 'buddha', 'bun', 'bunny', 'bust', 'cap', 'cube', 'dragon', 'lucy', 'star_smooth', 'sphere']
     # list_objname = ['sphere']
-    list_mask_val = [0, 0, 1, 0, 0, 0, 0, 0, 0, 1]
+    list_mask_val = [0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1]
     # list_mask_val = [1]
     path_dir = '/media/mswym/SSD-PGU3/database/translucent_data_che/'
-    path_dir_model = '/media/mswym/SSD-PGU3/database/results_translucent_220303/model_objects_tonemap/'
+    path_dir_model = '/media/mswym/SSD-PGU3/database/results_translucent_220303/model_objects_tonemap_mask/'
 
     for i, ind_obj in enumerate(list_objname):
         # packing the training dataset from the directory
@@ -194,12 +194,12 @@ if __name__ == '__main__':
         path_mask = path_dir + 'mask/' + ind_obj + '.exr'
         fname_save_binary = path_dir_model + 'che_220322_1500train_' + ind_obj + '.binary'
 
-        val_dataset_train = MyDatasetDir(path_img, path_mask=0, val_mask=0, transform1=None,
+        val_dataset_train = MyDatasetDir(path_img, path_mask=path_mask, val_mask=list_mask_val[i], transform1=None,
                                          flag_hdr=True, fname_save=fname_save_binary)
 
         # packing the test dataset from the directory
         path_img = path_dir + 'split_objects/test_' + ind_obj + '/*.exr'
         fname_save_binary = path_dir_model + 'che_220322_300test_' + ind_obj + '.binary'
 
-        val_dataset_test = MyDatasetDir(path_img, path_mask=0, val_mask=0, transform1=None,
+        val_dataset_test = MyDatasetDir(path_img, path_mask=path_mask, val_mask=list_mask_val[i], transform1=None,
                                         flag_hdr=True, fname_save=fname_save_binary)

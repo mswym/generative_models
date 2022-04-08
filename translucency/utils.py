@@ -1,7 +1,7 @@
 import pytorch_lightning as pl
 #from vae_vanilla_resnet import VAE_resnet
-#from vae_vanilla import VAE_vanilla
-from vae_noncnn import VAE_noncnn
+from vae_vanilla import VAE_vanilla
+#from vae_noncnn import VAE_noncnn
 from class_mydataset import MyDatasetDir,MyDatasetBinary
 import torchvision
 from torchvision import transforms
@@ -25,7 +25,7 @@ def load_mean_std(mypath):
 
 def check_output(model,img,ind_img):
     model.eval()
-    img = img.view(img.size()[0], -1)
+    #img = img.view(img.size()[0], -1)
     img_hat = model.forward(img)
     recon_loss = F.mse_loss(img_hat[ind_img], img[ind_img], reduction="mean")
     print(recon_loss)
@@ -56,7 +56,7 @@ if __name__ == '__main__':
     path_dir_save = '/media/mswym/SSD-PGU3/database/results_translucent_220303/model_objects_tonemap/'
     #path_checkpoint = "/media/mswym/SSD-PGU3/database/results_translucen" \
     #                  "t_220303/model_objects_tonemap/armadillo_latent20_logs/version_25/checkpoints/epoch=18-step=265.ckpt"
-    path_checkpoint = "/media/mswym/SSD-PGU3/database/results_translucent_220303/model_objects_tonemap//armadillo_latent5_logs/version_0/checkpoints/epoch=99-step=1399.ckpt"
+    path_checkpoint = "/media/mswym/SSD-PGU3/database/results_translucent_220303/model_objects_tonemap/armadillo_latent20_logs/version_39/checkpoints/epoch=21-step=1869.ckpt"
     ind_obj = 0
 
     ind_img = 80
@@ -84,5 +84,5 @@ if __name__ == '__main__':
     data = next(iter(test_dataloader))
     img = data[0]
 
-    model = VAE_noncnn.load_from_checkpoint(checkpoint_path=path_checkpoint)
+    model = VAE_vanilla.load_from_checkpoint(checkpoint_path=path_checkpoint)
     check_output(model, img, ind_img)

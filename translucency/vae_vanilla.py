@@ -48,7 +48,7 @@ class VAE_vanilla(LightningModule):
             enc_type: str = "resnet18",
             first_conv: bool = False,
             maxpool1: bool = False,
-            enc_out_height: int = 4,
+            enc_out_height: int = 16,
             kl_coeff: float = 0.1,
             latent_dim: int = 256,
             lr: float = 1e-4,
@@ -80,7 +80,7 @@ class VAE_vanilla(LightningModule):
         self.val_losses = val_losses
 
         if hidden_dims is None:
-            hidden_dims = [32, 64, 128, 256, 512, 1024]
+            hidden_dims = [128, 256, 512, 1024]
         self.enc_out_height = enc_out_height
         self.enc_out_dim = hidden_dims[-1]
         self.hidden_dims = hidden_dims
