@@ -53,25 +53,28 @@ def check_output(model,img,ind_img):
 
 if __name__ == '__main__':
     list_objname = ['armadillo', 'buddha', 'bun', 'bunny', 'bust', 'cap', 'cube', 'dragon', 'lucy', 'star_smooth', 'sphere']
-    path_dir_save = '/media/mswym/SSD-PGU3/database/results_translucent_220303/model_objects_tonemap/'
+    #path_dir_save = '/media/mswym/SSD-PGU3/database/results_translucent_220303/model_objects_tonemap/'
+    path_dir_save = '../obj_mask/'
     #path_checkpoint = "/media/mswym/SSD-PGU3/database/results_translucen" \
     #                  "t_220303/model_objects_tonemap/armadillo_latent20_logs/version_25/checkpoints/epoch=18-step=265.ckpt"
-    path_checkpoint = "/media/mswym/SSD-PGU3/database/results_translucent_220303/model_objects_tonemap/armadillo_latent20_logs/version_39/checkpoints/epoch=21-step=1869.ckpt"
+    #path_checkpoint = "/media/mswym/SSD-PGU3/database/results_translucent_220303/model_objects_tonemap/armadillo_latent20_logs/version_39/checkpoints/epoch=21-step=1869.ckpt"
+    path_checkpoint = "../obj_mask/armadillo_latent256_logs/version_0/checkpoints/epoch=99-step=8499.ckpt"
     ind_obj = 0
 
-    ind_img = 80
+    ind_img = 190
+
 
     num_epochs = 200
-    batch_size = 100
+    batch_size = 300
     learning_rate = 1e-4
     size_input = np.array([256, 256, 3])
     ratio_trainval = 0.9
     latent_dim = 10
     log = []
 
-    latent_dim = 100
+    latent_dim = 128
 
-    mypath = path_dir_save+'che_220322_1500train_'+list_objname[ind_obj] +'.binary'
+    mypath = path_dir_save+'che_220322_300test_'+list_objname[ind_obj] +'.binary'
 
     mean_img, std_img = load_mean_std(mypath)
     img_transform = transforms.Compose([
