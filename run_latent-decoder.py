@@ -1,101 +1,136 @@
-import pytorch_lightning as pl
-from pl_bolts.datamodules import SklearnDataModule
-from sklearn.datasets import load_boston
 from translucency.linear_decoder import *
 
 import numpy as np
-import matplotlib.pyplot as plt
 
-import pytorch_lightning as pl
-#from vae_vanilla_resnet import VAE_resnet
 from translucency.vae_vanilla import VAE_vanilla
-##from vae_noncnn import VAE_noncnn
 from translucency.class_mydataset import MyDatasetBinary
-import torchvision
 from torchvision import transforms
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader
 
-import torch
-from torch.nn import functional as F
-import os
+from sklearn.linear_model import LinearRegression
+
+import time
 import pickle
+import matplotlib.pyplot as plt
+import itertools
 
-# from sklearn.linear_model import LinearRegression
-
-
-def cal_linear_reg_out_model(x, y, scale_eigenval = 1,autoadjust_eigenval=True):
+def make_decoder(x, y, scale_eigenval=1, autoadjust_eigenval=True):
+    out = {}
     model_lr = LinearRegression(fit_intercept=True)
     model_lr.fit(x, y)
     eigen_val, eigen_vec = np.linalg.eig(model_lr.coef_)
-    #eigen_val = eigen_val / np.linalg.norm(eigen_val)
     if autoadjust_eigenval:
         eigen_val = eigen_val / np.linalg.norm(eigen_val)
     else:
         eigen_val = eigen_val * scale_eigenval
-    #eigen_val = np.ones(eigen_val.shape)
+    # eigen_val = np.ones(eigen_val.shape)
     eigen_val = np.diag(eigen_val)
-    #for i in range(len(eigen_vec)):
+    # for i in range(len(eigen_vec)):
     #    eigen_vec[i] = eigen_vec[i] / np.linalg.norm(eigen_vec[i])
     new_coef_matrix = np.dot(np.dot(eigen_vec, eigen_val), np.linalg.inv(eigen_vec))
     new_coef_matrix = np.real(new_coef_matrix)
 
-    return new_coef_matrix, model_lr.intercept_
+    out['coefficient'] = new_coef_matrix
+    out['intercept'] = model_lr.intercept_
+    return out
+
+
+def extract_latent(model, img_train):
+    latent_z, _, _, _ = model._run_step(img_train)
+
+    return latent_z.to('cpu').detach().numpy().copy()
+
+def extract_latents(num_itr, model, path_checkpoint, img_train):
+    model = model.load_from_checkpoint(checkpoint_path=path_checkpoint)
+    model.eval()
+    latent_z = [extract_latent(model, next(iter(img_train))[0]) for itr in range(10)]
+    latent_z = np.array(latent_z)
+
+    return latent_z.reshape([-1, latent_z.shape[2]])
+
+def read_img_dataset(mypath, img_transform, batch_size_train):
+    #load all image data
+    dataset = MyDatasetBinary(mypath, transform1=img_transform, flag_hdr=True)
+    dataset = DataLoader(dataset, batch_size=batch_size_train, shuffle=False)
+
+    return dataset
+
+
+def cal_linear_reg(x, new_coef_matrix, intercept):
+    x_hat = np.dot(new_coef_matrix, x.T)
+
+    return x_hat.T + intercept
+
+
+
 
 
 if __name__ == '__main__':
-    batch_size_train = 1500
+    batch_size_train = 30
     batch_size_test = 300
     size_input = np.array([256, 256, 3])
     scale_eigenval = 1
+    flag_autoadjust_eigenval = False
 
-    list_objname = ['armadillo', 'buddha', 'bun', 'bunny', 'bust', 'cap', 'cube', 'dragon', 'lucy', 'star_smooth', 'sphere']
-    path_dir_save = '../../db/obj_mask/'
+    list_objname = ['armadillo', 'buddha', 'bun', 'bunny', 'bust', 'cap', 'cube', 'dragon', 'lucy', 'star_smooth',
+                    'sphere']
+    #list_objname = ['buddha', 'armadillo']
+    list_num_latent = [2, 4, 8, 16, 32, 64, 128, 256]
+    #list_num_latent = [4]
 
-    ind_obj_1 = 0
-    ind_obj_2 = 1
+    path_dir_save = '/media/mswym/PortableSSD/translucency/'
+    model_body = VAE_vanilla()
 
-    model_1 = VAE_vanilla()
-    model_2 = VAE_vanilla()
+    comb_list = list(itertools.combinations(np.linspace(0, len(list_objname) - 1, len(list_objname)), 2))
 
+    for num_latent in list_num_latent:
+        for ind_obj in range(len(comb_list)):
+            start_time = time.perf_counter()
+            ind_obj_1 = int(comb_list[ind_obj][0])
+            ind_obj_2 = int(comb_list[ind_obj][1])
 
-    path_checkpoint_1 = "../../db/obj_mask/armadillo_latent256_logs/version_0/checkpoints/epoch=99-step=8499.ckpt"
-    path_checkpoint_2 = "../../db/obj_mask/buddha_latent256_logs/version_0/checkpoints/epoch=99-step=8499.ckpt"
+            path_save_1 = path_dir_save + "obj_mask/coef_" + list_objname[ind_obj_1] + "-" + list_objname[ind_obj_2] + "_latent" + str(num_latent) + ".pkl"
+            path_save_2 = path_dir_save + "obj_mask/coef_" + list_objname[ind_obj_2] + "-" + list_objname[ind_obj_1] + "_latent" + str(num_latent) + ".pkl"
 
-    mypath_1 = path_dir_save + '../model_objects_tonemap_mask/che_220322_1500train_' + list_objname[ind_obj_1] + '.binary'
-    mypath_2 = path_dir_save + '../model_objects_tonemap_mask/che_220322_1500train_' + list_objname[ind_obj_2] + '.binary'
-    img_transform = transforms.Compose([
-        transforms.Resize((size_input[0], size_input[1])),
-        transforms.ToTensor()
-    ])
-    dataset_1 = MyDatasetBinary(mypath_1, transform1=img_transform, flag_hdr=True)
-    train_dataloader_1 = DataLoader(dataset_1, batch_size=batch_size_train, shuffle=False)
-    img_train_1 = next(iter(train_dataloader_1))
-    img_train_1 = img_train_1[0]
+            path_checkpoint_1 = path_dir_save + "obj_mask/" + list_objname[
+                ind_obj_1] + "_latent" + str(num_latent) + "_logs/version_0/checkpoints/epoch=99-step=8499.ckpt"
+            path_checkpoint_2 = path_dir_save + "obj_mask/" + list_objname[
+                ind_obj_2] + "_latent" + str(num_latent) + "_logs/version_0/checkpoints/epoch=99-step=8499.ckpt"
 
-    dataset_2 = MyDatasetBinary(mypath_2, transform1=img_transform, flag_hdr=True)
-    train_dataloader_2 = DataLoader(dataset_2, batch_size=batch_size_train, shuffle=False)
-    img_train_2 = next(iter(train_dataloader_2))
-    img_train_2 = img_train_2[0]
+            mypath_1 = path_dir_save + 'model_objects_tonemap_mask/che_220322_1500train_' + list_objname[
+                ind_obj_1] + '.binary'
+            mypath_2 = path_dir_save + 'model_objects_tonemap_mask/che_220322_1500train_' + list_objname[
+                ind_obj_2] + '.binary'
 
+            img_transform = transforms.Compose([
+                transforms.Resize((size_input[0], size_input[1])),
+                transforms.ToTensor()
+            ])
 
-    #load trained models
-    model_1 = model_1.load_from_checkpoint(checkpoint_path=path_checkpoint_1)
-    model_1.eval()
-    model_2 = model_2.load_from_checkpoint(checkpoint_path=path_checkpoint_2)
-    model_2.eval()
+            img_train_1 = read_img_dataset(mypath_1, img_transform, batch_size_train)
+            img_train_2 = read_img_dataset(mypath_1, img_transform, batch_size_train)
 
-    #get latent codes z
-    latent_z_1, x_hat_1, _, _ = model_1._run_step(img_train_1)
-    latent_z_2, x_hat_2, _, _ = model_2._run_step(img_train_2)
+            #latent computing.
+            latent_z_1 = extract_latents(len(img_train_1), model_body, path_checkpoint_1, img_train_1)
+            latent_z_2 = extract_latents(len(img_train_2), model_body, path_checkpoint_2, img_train_2)
 
-    latent_z_1 = latent_z_1.to('cpu').detach().numpy().copy()
-    latent_z_2 = latent_z_2.to('cpu').detach().numpy().copy()
+            # train the linear decoder
+            decoder_12 = make_decoder(latent_z_1, latent_z_2, scale_eigenval,
+                                                            autoadjust_eigenval=flag_autoadjust_eigenval)
+            decoder_21 = make_decoder(latent_z_2, latent_z_1, scale_eigenval,
+                                                            autoadjust_eigenval=flag_autoadjust_eigenval)
 
-    #train the linear decoder
-    coeff_1, intercept_1 = cal_linear_reg_out_model(latent_z_1, latent_z_2, scale_eigenval, autoadjust_eigenval=flag_autoadjust_eigenval)
-    coeff_2, intercept_2 = cal_linear_reg_out_model(latent_z_2, latent_z_1, scale_eigenval, autoadjust_eigenval=flag_autoadjust_eigenval)
+            with open(path_save_1, 'wb') as f:
+                pickle.dump(decoder_12, f)
+            with open(path_save_2, 'wb') as f:
+                pickle.dump(decoder_21, f)
+            print(time.perf_counter()-start_time)
 
-    a = 1
+            #latent_z_12 = cal_linear_reg(latent_z_1, decoder_12['coefficient'], decoder_12['intercept'])
+            #latent_z_21 = cal_linear_reg(latent_z_2, decoder_21['coefficient'], decoder_21['intercept'])
+            #plt.scatter(latent_z_21.flatten(),latent_z_1.flatten())
+            #plt.show()
+            #plt.scatter(latent_z_12.flatten(), latent_z_2.flatten())
+            #plt.show()
+            #print('finished')
 
-
-    print('finished')
