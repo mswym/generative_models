@@ -75,7 +75,6 @@ if __name__ == '__main__':
     latent_dim = 128
 
     mypath = path_dir_save+'che_220322_300test_'+list_objname[ind_obj] +'.binary'
-
     mean_img, std_img = load_mean_std(mypath)
     img_transform = transforms.Compose([
         transforms.Resize((size_input[0], size_input[1])),
@@ -86,6 +85,5 @@ if __name__ == '__main__':
     test_dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
     data = next(iter(test_dataloader))
     img = data[0]
-
     model = VAE_vanilla.load_from_checkpoint(checkpoint_path=path_checkpoint)
     check_output(model, img, ind_img)

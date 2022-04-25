@@ -42,8 +42,8 @@ class VAE_vanilla(LightningModule):
 
     def __init__(
             self,
-            input_height: int,
-            input_channels: int,
+            input_height: int = 256,
+            input_channels: int = 3,
             hidden_dims: list = None,
             enc_type: str = "resnet18",
             first_conv: bool = False,
