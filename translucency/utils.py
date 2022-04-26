@@ -2,7 +2,7 @@ import pytorch_lightning as pl
 #from vae_vanilla_resnet import VAE_resnet
 from vae_vanilla import VAE_vanilla
 #from vae_noncnn import VAE_noncnn
-from class_mydataset import MyDatasetDir,MyDatasetBinary
+from class_mydataset_wo_openexr import MyDatasetBinary
 import torchvision
 from torchvision import transforms
 from torch.utils.data import DataLoader, random_split
