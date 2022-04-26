@@ -19,10 +19,10 @@ import re
 
 class MyDatasetDir(torch.utils.data.Dataset):
     def __init__(self, mypath, path_mask=0, val_mask=1, transform1=None, flag_hdr=False,
-                 fname_save='my_dataset.binaryfile'):
+                 fname_save='my_dataset.binaryfile',flag_crop=False, size_crop=32):
         self.transform1 = transform1
         self.flag_hdr = flag_hdr
-        class_imgs = ReadImgDir(mypath, path_mask, val_mask, flag_hdr=True)
+        class_imgs = ReadImgDir(mypath, path_mask, val_mask, flag_hdr=True, flag_crop=flag_crop, size_crop=size_crop)
         self.dataset, self.label, self.mean_img, self.std_img = class_imgs.read_all_img()
 
         with open(fname_save, 'wb') as f:
@@ -84,7 +84,7 @@ class MyDatasetBinary(torch.utils.data.Dataset):
 
 
 class ReadImgDir():
-    def __init__(self, path_dir, path_mask, val_mask, flag_hdr=False, val_gamma=2.2):
+    def __init__(self, path_dir, path_mask, val_mask, flag_hdr=False, val_gamma=2.2, flag_crop=False, size_crop=32):
         self.fname_list_img = glob.glob(path_dir)
         self.fname_list_img.sort()
         self.flag_hdr = flag_hdr
@@ -95,6 +95,9 @@ class ReadImgDir():
                 self.maskimg = np.abs(self.maskimg - 1)
         else:
             self.maskimg = 1
+
+        self.flag_crop = flag_crop
+        self.size_crop = size_crop
         print('num of images is ' + str(self.num_img))
 
     def read_all_img(self):
@@ -109,6 +112,13 @@ class ReadImgDir():
                 img = self.read_exr_fnc(self.fname_list_img[i_list])  # size is m x n  here only grayscale
                 img = self.apply_tonemap_exposure(img)
                 img = 255 * img * self.maskimg
+                if self.flag_crop:
+                    mask_crop = np.zeros(img.shape)
+                    pos_center = [img.shape[0]/2,img.shape[1]/2]
+                    mask_crop[round(pos_center[0]-(self.size_crop/2)):round(pos_center[0]+(self.size_crop/2)),
+                                round(pos_center[1]-(self.size_crop/2)):round(pos_center[1]+(self.size_crop/2))] = 1
+                    img = img*mask_crop
+
                 if len(img.shape):
                     mean_img.append(np.mean(img))
                     std_img.append(np.std(img))
@@ -186,20 +196,29 @@ if __name__ == '__main__':
     list_mask_val = [0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1]
     # list_mask_val = [1]
     path_dir = '/media/mswym/SSD-PGU3/database/translucent_data_che/'
-    path_dir_model = '/media/mswym/SSD-PGU3/database/results_translucent_220303/model_objects_tonemap_mask/'
+    path_dir_model = '/home/mswym/workspace/db/model_objects_tonemap_mask_crop/'
+    flag_crop = True
+    list_size_crop = [64, 128, 256] # -> applied to 512 x 512 images. Usually, the training is downsampled to 256 x 256
 
-    for i, ind_obj in enumerate(list_objname):
-        # packing the training dataset from the directory
-        path_img = path_dir + 'split_objects/' + ind_obj + '/*.exr'
-        path_mask = path_dir + 'mask/' + ind_obj + '.exr'
-        fname_save_binary = path_dir_model + 'che_220322_1500train_' + ind_obj + '.binary'
+    for size_crop in list_size_crop:
+        for i, ind_obj in enumerate(list_objname):
+            # packing the training dataset from the directory
+            path_img = path_dir + 'split_objects/' + ind_obj + '/*.exr'
+            path_mask = path_dir + 'mask/' + ind_obj + '.exr'
+            if flag_crop==True:
+                fname_save_binary = path_dir_model + 'che_220322_1500train_' + ind_obj + '_cropsize_' + str(size_crop) + '.binary'
+            else:
+                fname_save_binary = path_dir_model + 'che_220322_1500train_' + ind_obj + '.binary'
 
-        val_dataset_train = MyDatasetDir(path_img, path_mask=path_mask, val_mask=list_mask_val[i], transform1=None,
-                                         flag_hdr=True, fname_save=fname_save_binary)
+            val_dataset_train = MyDatasetDir(path_img, path_mask=path_mask, val_mask=list_mask_val[i], transform1=None,
+                                             flag_hdr=True, fname_save=fname_save_binary, flag_crop=flag_crop, size_crop=size_crop)
 
-        # packing the test dataset from the directory
-        path_img = path_dir + 'split_objects/test_' + ind_obj + '/*.exr'
-        fname_save_binary = path_dir_model + 'che_220322_300test_' + ind_obj + '.binary'
+            # packing the test dataset from the directory
+            path_img = path_dir + 'split_objects/test_' + ind_obj + '/*.exr'
+            if flag_crop==True:
+                fname_save_binary = path_dir_model + 'che_220322_300test_' + ind_obj + '_cropsize_' + str(size_crop) + '.binary'
+            else:
+                fname_save_binary = path_dir_model + 'che_220322_300test_' + ind_obj + '.binary'
 
-        val_dataset_test = MyDatasetDir(path_img, path_mask=path_mask, val_mask=list_mask_val[i], transform1=None,
-                                        flag_hdr=True, fname_save=fname_save_binary)
+            val_dataset_test = MyDatasetDir(path_img, path_mask=path_mask, val_mask=list_mask_val[i], transform1=None,
+                                            flag_hdr=True, fname_save=fname_save_binary, flag_crop=flag_crop, size_crop=size_crop)
