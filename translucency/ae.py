@@ -1,26 +1,30 @@
+# this code is edited from pytorch lightning code.
+# https://github.com/PyTorchLightning/lightning-bolts/blob/master/pl_bolts/models/autoencoders/basic_vae/basic_vae_module.py
+
+# I also added/edited the codes from AntixK/Pytorch-VAE repository.
+# https://github.com/AntixK/PyTorch-VAE
+
 import urllib.parse
 from argparse import ArgumentParser
 
 import torch
+from pytorch_lightning import LightningModule, Trainer, seed_everything
 from torch import nn
 from torch.nn import functional as F
-from torch.utils.data import DataLoader, random_split
-import torchvision.transforms as transforms
 
-from pytorch_lightning import LightningDataModule, LightningModule, Trainer
-from pytorch_lightning import loggers as pl_loggers
 from pl_bolts import _HTTPS_AWS_HUB
-
+from pl_bolts.models.autoencoders.components import (
+    resnet18_decoder,
+    resnet18_encoder,
+    resnet50_decoder,
+    resnet50_encoder,
+)
 import matplotlib.pyplot as plt
-import numpy as np
 import copy
-
-from utils import *
 
 from class_mydataset_wo_openexr import MyDatasetBinary
 
-
-class VAE_info(LightningModule):
+class AE(LightningModule):
     """Standard VAE with Gaussian Prior and approx posterior.
     Model is available pretrained on different datasets:
     Example::
@@ -50,8 +54,6 @@ class VAE_info(LightningModule):
             latent_dim: int = 256,
             lr: float = 1e-4,
             val_losses: list = None,
-            alpha: float = -0.5,
-            beta: float = 5.0,
             **kwargs,
     ):
         """
@@ -72,9 +74,6 @@ class VAE_info(LightningModule):
 
         self.save_hyperparameters()
 
-        self.alpha = alpha
-        self.beta = beta
-
         self.lr = lr
         self.kl_coeff = kl_coeff
         self.latent_dim = latent_dim
@@ -90,7 +89,6 @@ class VAE_info(LightningModule):
 
         self.encoder = self.build_encoder(self.input_channels)
         self.fc_mu = nn.Linear(hidden_dims[-1]*enc_out_height*enc_out_height, self.latent_dim)
-        self.fc_var = nn.Linear(hidden_dims[-1]*enc_out_height*enc_out_height, self.latent_dim)
         self.decoder_input = nn.Linear(latent_dim, hidden_dims[-1]*enc_out_height*enc_out_height)
         self.hidden_dims.reverse()
         self.decoder = self.build_decoder()
@@ -152,52 +150,27 @@ class VAE_info(LightningModule):
     def forward(self, x):
         x = self.encoder(x)
         x = torch.flatten(x, start_dim=1) # due to manual encoder
-        mu = self.fc_mu(x)
-        log_var = self.fc_var(x)
-        p, q, z = self.sample(mu, log_var)
+        z = self.fc_mu(x)
         return self.decoders(z)
 
     def _run_step(self, x):
         x = self.encoder(x)
         x = torch.flatten(x, start_dim=1) # due to manual encoder
-        mu = self.fc_mu(x)
-        log_var = self.fc_var(x)
-        p, q, z = self.sample(mu, log_var)
-        return z, self.decoders(z), p, q
-
-    def sample(self, mu, log_var):
-        std = torch.exp(log_var / 2)
-        p = torch.distributions.Normal(torch.zeros_like(mu), torch.ones_like(std))
-        q = torch.distributions.Normal(mu, std)
-        z = q.rsample()
-        return p, q, z
+        z = self.fc_mu(x)
+        return z, self.decoders(z)
 
     def step(self, batch, batch_idx):
         x, y = batch
         z, x_hat, p, q = self._run_step(x)
 
-        batch_size = input.size(0)
-        bias_corr = batch_size * (batch_size - 1)
-
         recon_loss = F.mse_loss(x_hat, x, reduction="mean")
 
-        mmd_loss = self.compute_mmd(z)
-
-        kl = torch.distributions.kl_divergence(q, p)
-        kl = kl.mean()
-        kl *= self.kl_coeff
-
-        loss = self.beta * recon_loss + \
-               (1. - self.alpha) * kl + \
-               (self.alpha + self.reg_weight - 1.)/bias_corr * mmd_loss
+        loss = recon_loss
 
         logs = {
             "recon_loss": recon_loss,
-            "kl": kl,
-            'MMD': mmd_loss,
             "loss": loss
         }
-
         return loss, logs
 
     def training_step(self, batch, batch_idx):
@@ -224,60 +197,6 @@ class VAE_info(LightningModule):
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=self.lr)
-
-    def compute_rbf(self,
-                    x1: Tensor,
-                    x2: Tensor,
-                    eps: float = 1e-7) -> Tensor:
-        """
-        Computes the RBF Kernel between x1 and x2.
-        :param x1: (Tensor)
-        :param x2: (Tensor)
-        :param eps: (Float)
-        :return:
-        """
-        z_dim = x2.size(-1)
-        sigma = 2. * z_dim * self.z_var
-
-        result = torch.exp(-((x1 - x2).pow(2).mean(-1) / sigma))
-        return result
-
-    def compute_inv_mult_quad(self,
-                               x1: Tensor,
-                               x2: Tensor,
-                               eps: float = 1e-7) -> Tensor:
-        """
-        Computes the Inverse Multi-Quadratics Kernel between x1 and x2,
-        given by
-                k(x_1, x_2) = \sum \frac{C}{C + \|x_1 - x_2 \|^2}
-        :param x1: (Tensor)
-        :param x2: (Tensor)
-        :param eps: (Float)
-        :return:
-        """
-        z_dim = x2.size(-1)
-        C = 2 * z_dim * self.z_var
-        kernel = C / (eps + C + (x1 - x2).pow(2).sum(dim = -1))
-
-        # Exclude diagonal elements
-        result = kernel.sum() - kernel.diag().sum()
-
-        return result
-
-    def compute_mmd(self, z: Tensor) -> Tensor:
-        # Sample from prior (Gaussian) distribution
-        prior_z = torch.randn_like(z)
-
-        prior_z__kernel = self.compute_kernel(prior_z, prior_z)
-        z__kernel = self.compute_kernel(z, z)
-        priorz_z__kernel = self.compute_kernel(prior_z, z)
-
-        mmd = prior_z__kernel.mean() + \
-              z__kernel.mean() - \
-              2 * priorz_z__kernel.mean()
-        return mmd
-
-
 
 if __name__ == '__main__':
     num_epochs = 100
@@ -318,9 +237,7 @@ if __name__ == '__main__':
             val_dataloader = DataLoader(val_data, batch_size=batch_size, shuffle=True)
 
 
-            model = VAE_info(input_height=size_input[0], input_channels=3, kl_coeff=kl_coeff, latent_dim=latent_dim,
+            model = AE(input_height=size_input[0], input_channels=3, kl_coeff=kl_coeff, latent_dim=latent_dim,
                                lr=learning_rate, val_losses=log)
             trainer = pl.Trainer(gpus=1, max_epochs=num_epochs, logger=tb_logger)
             trainer.fit(model, train_dataloader, val_dataloader)
-
-
