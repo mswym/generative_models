@@ -74,12 +74,16 @@ class VAE_info(LightningModule):
 
         self.alpha = alpha
         self.beta = beta
+        self.kernel_type = 'imq'
+        self.z_var = 2.
+        self.reg_weight = 100
 
         self.lr = lr
         self.kl_coeff = kl_coeff
         self.latent_dim = latent_dim
         self.input_height = input_height
         self.val_losses = val_losses
+
 
         if hidden_dims is None:
             hidden_dims = [128, 256, 512, 1024]
@@ -176,7 +180,7 @@ class VAE_info(LightningModule):
         x, y = batch
         z, x_hat, p, q = self._run_step(x)
 
-        batch_size = input.size(0)
+        batch_size = x.size(0)
         bias_corr = batch_size * (batch_size - 1)
 
         recon_loss = F.mse_loss(x_hat, x, reduction="mean")
@@ -225,10 +229,36 @@ class VAE_info(LightningModule):
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=self.lr)
 
+    def compute_kernel(self,
+                       x1,
+                       x2):
+        # Convert the tensors into row and column vectors
+        D = x1.size(1)
+        N = x1.size(0)
+
+        x1 = x1.unsqueeze(-2) # Make it into a column tensor
+        x2 = x2.unsqueeze(-3) # Make it into a row tensor
+
+        """
+        Usually the below lines are not required, especially in our case,
+        but this is useful when x1 and x2 have different sizes
+        along the 0th dimension.
+        """
+        x1 = x1.expand(N, N, D)
+        x2 = x2.expand(N, N, D)
+
+        if self.kernel_type == 'rbf':
+            result = self.compute_rbf(x1, x2)
+        elif self.kernel_type == 'imq':
+            result = self.compute_inv_mult_quad(x1, x2)
+        else:
+            raise ValueError('Undefined kernel type.')
+
+        return result
     def compute_rbf(self,
-                    x1: Tensor,
-                    x2: Tensor,
-                    eps: float = 1e-7) -> Tensor:
+                    x1,
+                    x2,
+                    eps: float = 1e-7):
         """
         Computes the RBF Kernel between x1 and x2.
         :param x1: (Tensor)
@@ -243,9 +273,9 @@ class VAE_info(LightningModule):
         return result
 
     def compute_inv_mult_quad(self,
-                               x1: Tensor,
-                               x2: Tensor,
-                               eps: float = 1e-7) -> Tensor:
+                               x1,
+                               x2,
+                               eps: float = 1e-7):
         """
         Computes the Inverse Multi-Quadratics Kernel between x1 and x2,
         given by
@@ -264,7 +294,7 @@ class VAE_info(LightningModule):
 
         return result
 
-    def compute_mmd(self, z: Tensor) -> Tensor:
+    def compute_mmd(self, z):
         # Sample from prior (Gaussian) distribution
         prior_z = torch.randn_like(z)
 
@@ -289,11 +319,11 @@ if __name__ == '__main__':
     kl_coeff = 0.00001
 
     #list_objname = ['armadillo', 'buddha', 'bun', 'bunny', 'bust', 'cap', 'cube', 'dragon', 'lucy', 'star_smooth', 'sphere']
-    list_objname = ['armadillo', 'cap']
+    list_objname = ['bust', 'bunny', 'sphere', 'armadillo', 'buddha', 'bun','cap', 'cube', 'dragon', 'lucy', 'star_smooth']
     #path_dir_save = '/media/mswym/SSD-PGU3/database/results_translucent_220303/model_objects_tonemap_mask/'
-    path_dir_save = '/home/mswym/workspace/db/model_objects_tonemap_mask/'
+    path_dir_save = '/home/mswym/workspace/myprj/model_objects_tonemap_mask/'
 
-    latent_dims = [16]
+    latent_dims = [16, 32]
 
     for latent_dim in latent_dims:
         for ind_obj in list_objname:

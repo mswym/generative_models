@@ -1,5 +1,3 @@
-from translucency.linear_decoder import *
-
 import numpy as np
 
 from translucency.vae_vanilla import VAE_vanilla
@@ -61,10 +59,6 @@ def cal_linear_reg(x, new_coef_matrix, intercept):
 
     return x_hat.T + intercept
 
-
-
-
-
 if __name__ == '__main__':
     batch_size_train = 30
     batch_size_test = 300
@@ -74,9 +68,9 @@ if __name__ == '__main__':
 
     list_objname = ['armadillo', 'buddha', 'bun', 'bunny', 'bust', 'cap', 'cube', 'dragon', 'lucy', 'star_smooth',
                     'sphere']
-    #list_objname = ['buddha', 'armadillo']
+    #list_objname = ['sphere', 'armadillo']
     list_num_latent = [2, 4, 8, 16, 32, 64, 128, 256]
-    #list_num_latent = [4]
+    #list_num_latent = [256]
 
     path_dir_save = '/media/mswym/PortableSSD/translucency/'
     model_body = VAE_vanilla()
@@ -89,8 +83,8 @@ if __name__ == '__main__':
             ind_obj_1 = int(comb_list[ind_obj][0])
             ind_obj_2 = int(comb_list[ind_obj][1])
 
-            path_save_1 = path_dir_save + "obj_mask/coef_" + list_objname[ind_obj_1] + "-" + list_objname[ind_obj_2] + "_latent" + str(num_latent) + ".pkl"
-            path_save_2 = path_dir_save + "obj_mask/coef_" + list_objname[ind_obj_2] + "-" + list_objname[ind_obj_1] + "_latent" + str(num_latent) + ".pkl"
+            path_save_1 = path_dir_save + "obj_mask/coef/coef_" + list_objname[ind_obj_1] + "-" + list_objname[ind_obj_2] + "_latent" + str(num_latent) + ".pkl"
+            path_save_2 = path_dir_save + "obj_mask/coef/coef_" + list_objname[ind_obj_2] + "-" + list_objname[ind_obj_1] + "_latent" + str(num_latent) + ".pkl"
 
             path_checkpoint_1 = path_dir_save + "obj_mask/" + list_objname[
                 ind_obj_1] + "_latent" + str(num_latent) + "_logs/version_0/checkpoints/epoch=99-step=8499.ckpt"
@@ -108,7 +102,7 @@ if __name__ == '__main__':
             ])
 
             img_train_1 = read_img_dataset(mypath_1, img_transform, batch_size_train)
-            img_train_2 = read_img_dataset(mypath_1, img_transform, batch_size_train)
+            img_train_2 = read_img_dataset(mypath_2, img_transform, batch_size_train)
 
             #latent computing.
             latent_z_1 = extract_latents(len(img_train_1), model_body, path_checkpoint_1, img_train_1)
@@ -132,5 +126,5 @@ if __name__ == '__main__':
             #plt.show()
             #plt.scatter(latent_z_12.flatten(), latent_z_2.flatten())
             #plt.show()
-            #print('finished')
+    print('finished')
 

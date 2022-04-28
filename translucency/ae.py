@@ -161,7 +161,7 @@ class AE(LightningModule):
 
     def step(self, batch, batch_idx):
         x, y = batch
-        z, x_hat, p, q = self._run_step(x)
+        z, x_hat     = self._run_step(x)
 
         recon_loss = F.mse_loss(x_hat, x, reduction="mean")
 
@@ -208,7 +208,7 @@ if __name__ == '__main__':
     kl_coeff = 0.00001
 
     #list_objname = ['armadillo', 'buddha', 'bun', 'bunny', 'bust', 'cap', 'cube', 'dragon', 'lucy', 'star_smooth', 'sphere']
-    list_objname = ['armadillo', 'cap']
+    list_objname = ['bust', 'bunny', 'sphere', 'armadillo', 'buddha', 'bun','cap', 'cube', 'dragon', 'lucy', 'star_smooth']
     #path_dir_save = '/media/mswym/SSD-PGU3/database/results_translucent_220303/model_objects_tonemap_mask/'
     path_dir_save = '/home/mswym/workspace/db/model_objects_tonemap_mask/'
 
