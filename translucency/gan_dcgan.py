@@ -328,8 +328,8 @@ class Encoder(LightningModule):
 if __name__ == '__main__':
     num_epochs = 100
 
-    batch_size = 4
-    learning_rate = 1e-5
+    batch_size = 16
+    learning_rate = 1e-4
     size_input = np.array([256, 256, 3])
     ratio_trainval = 0.9
     kl_coeff = 0.00001
@@ -379,7 +379,7 @@ if __name__ == '__main__':
             trainer.fit(model, train_dataloader, val_dataloader)
 
 
-            model_encode = Encoder(input_height=size_input[0],
+            model_encode = Encoder(model, input_height=size_input[0],
                                    input_channels=3,
                                    kl_coeff=kl_coeff,
                                    latent_dim=latent_dim,
