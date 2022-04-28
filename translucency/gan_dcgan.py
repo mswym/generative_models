@@ -196,11 +196,6 @@ class Encoder(LightningModule):
         vae = VAE(input_height=32).from_pretrained('stl10-resnet18')
     """
 
-    pretrained_urls = {
-        "cifar10-resnet18": urllib.parse.urljoin(_HTTPS_AWS_HUB, "vae/vae-cifar10/checkpoints/epoch%3D89.ckpt"),
-        "stl10-resnet18": urllib.parse.urljoin(_HTTPS_AWS_HUB, "vae/vae-stl10/checkpoints/epoch%3D89.ckpt"),
-    }
-
     def __init__(
             self,
             model,
@@ -340,14 +335,14 @@ class Encoder(LightningModule):
 if __name__ == '__main__':
     num_epochs = 100
 
-    batch_size = 16
+    batch_size = 4
     learning_rate = 1e-5
     size_input = np.array([256, 256, 3])
     ratio_trainval = 0.9
     kl_coeff = 0.00001
 
     #list_objname = ['armadillo', 'buddha', 'bun', 'bunny', 'bust', 'cap', 'cube', 'dragon', 'lucy', 'star_smooth', 'sphere']
-    list_objname = ['armadillo', 'cap']
+    list_objname = ['bust', 'bunny', 'buddha']
     #path_dir_save = '/media/mswym/SSD-PGU3/database/results_translucent_220303/model_objects_tonemap_mask/'
     path_dir_save = '/home/mswym/workspace/db/model_objects_tonemap_mask/'
 
