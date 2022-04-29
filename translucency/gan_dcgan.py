@@ -220,6 +220,7 @@ class Encoder(LightningModule):
         """
 
         super().__init__()
+        model.eval()
 
         self.save_hyperparameters()
 
