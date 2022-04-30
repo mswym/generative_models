@@ -138,9 +138,9 @@ if __name__ == '__main__':
             fig = plt.figure(figsize=(6.5, 6.5))
             axes = fig.add_subplot(1, 1, 1)
             if metric == 'arr_0':
-                axes.imshow(abs(100 - rdm), vmax=100, vmin=50, cmap='plasma')
+                axes.imshow(50 - rdm, vmax=50, vmin=0, cmap='plasma')
             elif metric == 'arr_1':
-                axes.imshow(rdm, vmax=0.4, vmin=0, cmap='plasma')
+                axes.imshow(rdm, vmax=0.3, vmin=0, cmap='plasma')
             fig.savefig(path_dir + 'fig/metric_' + name_met + 'rdm_latent' + str(num_latent))
             plt.show()
             plt.close()
