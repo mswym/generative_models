@@ -175,13 +175,6 @@ class GAN(LightningModule):
         opt_d = torch.optim.Adam(self.discriminator.parameters(), lr=lr, betas=(b1, b2))
         return [opt_g, opt_d], []
 
-    def on_epoch_end(self):
-        z = self.validation_z.type_as(self.generator.model[0].weight)
-
-        # log sampled images
-        sample_imgs = self(z)
-        grid = torchvision.utils.make_grid(sample_imgs)
-        self.logger.experiment.add_image("generated_images", grid, self.current_epoch)
 
 
 class Encoder(LightningModule):
@@ -195,11 +188,6 @@ class Encoder(LightningModule):
         # pretrained on stl10
         vae = VAE(input_height=32).from_pretrained('stl10-resnet18')
     """
-
-    pretrained_urls = {
-        "cifar10-resnet18": urllib.parse.urljoin(_HTTPS_AWS_HUB, "vae/vae-cifar10/checkpoints/epoch%3D89.ckpt"),
-        "stl10-resnet18": urllib.parse.urljoin(_HTTPS_AWS_HUB, "vae/vae-stl10/checkpoints/epoch%3D89.ckpt"),
-    }
 
     def __init__(
             self,
@@ -232,6 +220,7 @@ class Encoder(LightningModule):
         """
 
         super().__init__()
+        model.eval()
 
         self.save_hyperparameters()
 
@@ -341,13 +330,13 @@ if __name__ == '__main__':
     num_epochs = 100
 
     batch_size = 16
-    learning_rate = 1e-5
+    learning_rate = 1e-4
     size_input = np.array([256, 256, 3])
     ratio_trainval = 0.9
     kl_coeff = 0.00001
 
     #list_objname = ['armadillo', 'buddha', 'bun', 'bunny', 'bust', 'cap', 'cube', 'dragon', 'lucy', 'star_smooth', 'sphere']
-    list_objname = ['armadillo', 'cap']
+    list_objname = ['bust', 'bunny', 'buddha']
     #path_dir_save = '/media/mswym/SSD-PGU3/database/results_translucent_220303/model_objects_tonemap_mask/'
     path_dir_save = '/home/mswym/workspace/db/model_objects_tonemap_mask/'
 
@@ -391,7 +380,7 @@ if __name__ == '__main__':
             trainer.fit(model, train_dataloader, val_dataloader)
 
 
-            model_encode = Encoder(input_height=size_input[0],
+            model_encode = Encoder(model, input_height=size_input[0],
                                    input_channels=3,
                                    kl_coeff=kl_coeff,
                                    latent_dim=latent_dim,
