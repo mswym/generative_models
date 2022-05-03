@@ -191,7 +191,6 @@ class Encoder(LightningModule):
 
     def __init__(
             self,
-            model,
             input_height: int = 256,
             input_channels: int = 3,
             hidden_dims: list = None,
@@ -220,9 +219,10 @@ class Encoder(LightningModule):
         """
 
         super().__init__()
-        model.eval()
 
         self.save_hyperparameters()
+
+        self.generator = None
 
         self.lr = lr
         self.kl_coeff = kl_coeff
@@ -283,7 +283,7 @@ class Encoder(LightningModule):
     def step(self, batch, batch_idx):
         x, y = batch
         z, p, q = self._run_step(x)
-        x_hat = model.generator(z)
+        x_hat = self.generator(z)
 
         recon_loss = F.mse_loss(x_hat, x, reduction="mean")
 
@@ -326,25 +326,25 @@ class Encoder(LightningModule):
         return torch.optim.Adam(self.parameters(), lr=self.lr)
 
 
-if __name__ == '__main__':
+def batch_run_dcgan(latent_dims):
     num_epochs = 100
-
     batch_size = 16
-    learning_rate = 1e-4
+
     size_input = np.array([256, 256, 3])
     ratio_trainval = 0.9
     kl_coeff = 0.00001
 
-    #list_objname = ['armadillo', 'buddha', 'bun', 'bunny', 'bust', 'cap', 'cube', 'dragon', 'lucy', 'star_smooth', 'sphere']
-    list_objname = ['bust', 'bunny', 'buddha']
+    list_objname = ['armadillo', 'buddha', 'bun', 'bunny', 'bust', 'cap', 'cube', 'dragon', 'lucy', 'star_smooth', 'sphere']
+    #list_objname = ['bust', 'bunny', 'buddha']
     #path_dir_save = '/media/mswym/SSD-PGU3/database/results_translucent_220303/model_objects_tonemap_mask/'
     path_dir_save = '/home/mswym/workspace/db/model_objects_tonemap_mask/'
 
-    latent_dims = [16]
+    #latent_dims = [16, 2, 256, 4, 8, 32, 64, 128]
 
     for latent_dim in latent_dims:
         for ind_obj in list_objname:
             log = []
+            learning_rate = 1e-4
             mypath = path_dir_save + 'che_220322_1500train_' + ind_obj + '.binary'
             tb_logger_gan = pl_loggers.TensorBoardLogger(
                 save_dir=path_dir_save,
@@ -379,11 +379,78 @@ if __name__ == '__main__':
             trainer = pl.Trainer(gpus=1, max_epochs=num_epochs, logger=tb_logger_gan)
             trainer.fit(model, train_dataloader, val_dataloader)
 
-
-            model_encode = Encoder(model, input_height=size_input[0],
+            #encoder learning
+            learning_rate = 1e-5
+            model_encode = Encoder(input_height=size_input[0],
                                    input_channels=3,
                                    kl_coeff=kl_coeff,
                                    latent_dim=latent_dim,
                                    lr=learning_rate)
+            model_encode.generator = model.generator
+            trainer = pl.Trainer(gpus=1, max_epochs=num_epochs, logger=tb_logger_encode)
+            trainer.fit(model_encode, train_dataloader, val_dataloader)
+
+if __name__ == '__main__':
+    num_epochs = 100
+
+    batch_size = 16
+
+    size_input = np.array([256, 256, 3])
+    ratio_trainval = 0.9
+    kl_coeff = 0.00001
+
+    list_objname = ['armadillo', 'buddha', 'bun', 'bunny', 'bust', 'cap', 'cube', 'dragon', 'lucy', 'star_smooth', 'sphere']
+    #list_objname = ['bust', 'bunny', 'buddha']
+    #path_dir_save = '/media/mswym/SSD-PGU3/database/results_translucent_220303/model_objects_tonemap_mask/'
+    path_dir_save = '/home/mswym/workspace/db/model_objects_tonemap_mask/'
+
+    latent_dims = [16, 2, 256, 4, 8, 32, 64, 128]
+
+    for latent_dim in latent_dims:
+        for ind_obj in list_objname:
+            log = []
+            learning_rate = 1e-4
+            mypath = path_dir_save + 'che_220322_1500train_' + ind_obj + '.binary'
+            tb_logger_gan = pl_loggers.TensorBoardLogger(
+                save_dir=path_dir_save,
+                name='gan_' + ind_obj + '_latent' + str(latent_dim) + "_logs/")
+
+            tb_logger_encode = pl_loggers.TensorBoardLogger(
+                save_dir=path_dir_save,
+                name='ganencode_' + ind_obj + '_latent' + str(latent_dim) + "_logs/")
+
+            #load mean information and make transforms
+            #mean_img, std_img = load_mean_std(mypath)
+            img_transform = transforms.Compose([
+                transforms.Resize((size_input[0], size_input[1])),
+                transforms.ToTensor()
+            ])
+            #load dataset while normalizing
+            dataset = MyDatasetBinary(mypath, transform1=img_transform, flag_hdr=True)
+
+            train_data, val_data = random_split(dataset, [int(len(dataset) * ratio_trainval),
+                                                          int(len(dataset) - len(dataset) * ratio_trainval)])
+            train_dataloader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
+            val_dataloader = DataLoader(val_data, batch_size=batch_size, shuffle=True)
+
+            model = GAN(channels=size_input[2],
+                        width=size_input[0],
+                        height=size_input[1],
+                        latent_dim=latent_dim,
+                        lr=learning_rate,
+                        b1=0.5,
+                        b2=0.999,
+                        batch_size= batch_size)
+            trainer = pl.Trainer(gpus=1, max_epochs=num_epochs, logger=tb_logger_gan)
+            trainer.fit(model, train_dataloader, val_dataloader)
+
+            #encoder learning
+            learning_rate = 1e-5
+            model_encode = Encoder(input_height=size_input[0],
+                                   input_channels=3,
+                                   kl_coeff=kl_coeff,
+                                   latent_dim=latent_dim,
+                                   lr=learning_rate)
+            model_encode.generator = model.generator
             trainer = pl.Trainer(gpus=1, max_epochs=num_epochs, logger=tb_logger_encode)
             trainer.fit(model_encode, train_dataloader, val_dataloader)
