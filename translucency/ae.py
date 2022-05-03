@@ -225,7 +225,7 @@ def batch_run_ae(latent_dims):
             mypath = path_dir_save + 'che_220322_1500train_' + ind_obj + '.binary'
             tb_logger = pl_loggers.TensorBoardLogger(
                 save_dir=path_dir_save,
-                name='infovae_' + ind_obj + '_latent' + str(latent_dim) + "_logs/")
+                name='ae_' + ind_obj + '_latent' + str(latent_dim) + "_logs/")
 
             #load mean information and make transforms
             #mean_img, std_img = load_mean_std(mypath)
