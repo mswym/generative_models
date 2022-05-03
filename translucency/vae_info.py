@@ -50,8 +50,8 @@ class VAE_info(LightningModule):
             latent_dim: int = 256,
             lr: float = 1e-4,
             val_losses: list = None,
-            alpha: float = -0.5,
-            beta: float = 5.0,
+            alpha: float = -0.9,
+            beta: float = 10.0,
             **kwargs,
     ):
         """
@@ -323,7 +323,7 @@ if __name__ == '__main__':
     #path_dir_save = '/media/mswym/SSD-PGU3/database/results_translucent_220303/model_objects_tonemap_mask/'
     path_dir_save = '/home/mswym/workspace/myprj/model_objects_tonemap_mask/'
 
-    latent_dims = [16, 32]
+    latent_dims = [16, 32, 2, 4, 8, 64, 128, 256]
 
     for latent_dim in latent_dims:
         for ind_obj in list_objname:
