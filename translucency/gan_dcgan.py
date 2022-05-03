@@ -343,6 +343,7 @@ def batch_run_dcgan(latent_dims):
 
     for latent_dim in latent_dims:
         for ind_obj in list_objname:
+            print('latent codes: ' + str(latent_dim) + 'object: ' + str(ind_obj))
             log = []
             learning_rate = 1e-4
             mypath = path_dir_save + 'che_220322_1500train_' + ind_obj + '.binary'

@@ -212,8 +212,8 @@ def batch_run_ae(latent_dims):
     ratio_trainval = 0.9
     kl_coeff = 0.00001
 
-    #list_objname = ['armadillo', 'buddha', 'bun', 'bunny', 'bust', 'cap', 'cube', 'dragon', 'lucy', 'star_smooth', 'sphere']
-    list_objname = ['bust', 'bunny', 'sphere', 'armadillo', 'buddha', 'bun','cap', 'cube', 'dragon', 'lucy', 'star_smooth']
+    list_objname = ['armadillo', 'buddha', 'bun', 'bunny', 'bust', 'cap', 'cube', 'dragon', 'lucy', 'star_smooth', 'sphere']
+    #list_objname = ['bust', 'bunny', 'sphere', 'armadillo', 'buddha', 'bun','cap', 'cube', 'dragon', 'lucy', 'star_smooth']
     #path_dir_save = '/media/mswym/SSD-PGU3/database/results_translucent_220303/model_objects_tonemap_mask/'
     path_dir_save = '/home/mswym/workspace/db/model_objects_tonemap_mask/'
 
@@ -221,6 +221,7 @@ def batch_run_ae(latent_dims):
 
     for latent_dim in latent_dims:
         for ind_obj in list_objname:
+            print('latent codes: ' + str(latent_dim) + 'object: ' + str(ind_obj))
             log = []
             mypath = path_dir_save + 'che_220322_1500train_' + ind_obj + '.binary'
             tb_logger = pl_loggers.TensorBoardLogger(
