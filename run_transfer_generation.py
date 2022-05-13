@@ -15,32 +15,8 @@ import itertools
 from PIL import Image
 import os
 
-def read_img_dataset(mypath, img_transform, batch_size_train):
-    # load all image data
-    dataset = MyDatasetBinary(mypath, transform1=img_transform, flag_hdr=True)
-    dataset = DataLoader(dataset, batch_size=batch_size_train, shuffle=False)
+from translucency.utils import *
 
-    return dataset
-
-def extract_latent_xhat(model, img_train):
-    latent_z, img_hat, _, _ = model._run_step(img_train)
-
-    return latent_z.to('cpu').detach().numpy().copy(), img_hat.to('cpu').detach().numpy().copy()
-
-
-def extract_latents_xhats(num_itr, model, img_train):
-    model.eval()
-    latent_z = []
-    x_hat = []
-    for itr in range(num_itr):
-        tmp_z, tmp_xhat = extract_latent_xhat(model, next(iter(img_train))[0])
-        latent_z.append(tmp_z)
-        x_hat.append(tmp_xhat)
-
-    latent_z = np.array(latent_z)
-    x_hat = np.array(x_hat)
-    return latent_z.reshape([-1, latent_z.shape[2]]), x_hat.reshape(
-        [-1, x_hat.shape[2], x_hat.shape[3], x_hat.shape[4]])
 
 def cal_linear_reg(x, new_coef_matrix, intercept):
     x_hat = np.dot(new_coef_matrix, x.T)
