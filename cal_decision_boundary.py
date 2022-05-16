@@ -75,8 +75,6 @@ if __name__ == '__main__':
         ind_obj_1 = list_objname[int(comb_list[ind_obj][0])]
         ind_obj_2 = list_objname[int(comb_list[ind_obj][1])]
 
-        start_time = time.perf_counter()
-
         path_save_1 = path_dir_save + "obj_mask/svm/svm_" + ind_obj_1 + "-" + ind_obj_2 + "_latent" + str(
             num_latent) + ".pkl"
         path_save_2 = path_dir_save + "obj_mask/svm/svm_" + ind_obj_2 + "-" + ind_obj_1 + "_latent" + str(
@@ -89,6 +87,7 @@ if __name__ == '__main__':
 
         mypath_1 = path_dir_save + 'model_objects_tonemap_mask/che_220322_1500train_' + ind_obj_1 + '.binary'
         mypath_2 = path_dir_save + 'model_objects_tonemap_mask/che_220322_1500train_' + ind_obj_2 + '.binary'
+
 
         img_transform = transforms.Compose([
             transforms.Resize((size_input[0], size_input[1])),
