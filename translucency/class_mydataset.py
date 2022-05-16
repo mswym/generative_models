@@ -195,8 +195,8 @@ if __name__ == '__main__':
     # list_objname = ['sphere']
     list_mask_val = [0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1]
     # list_mask_val = [1]
-    path_dir = '/media/mswym/SSD-PGU3/database/translucent_data_che/'
-    path_dir_model = '/home/mswym/workspace/db/model_objects_tonemap_mask_crop/'
+    path_dir = '/media/mswym/PortableSSD/translucency/translucent_data_che/'
+    path_dir_model = '/media/mswym/PortableSSD/translucency/model_objects_tonemap_mask_crop/'
     flag_crop = True
     list_size_crop = [64, 128, 256] # -> applied to 512 x 512 images. Usually, the training is downsampled to 256 x 256
 
