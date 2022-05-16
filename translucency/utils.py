@@ -31,8 +31,9 @@ def extract_latents_xhats(num_itr, model, img_train):
     model.eval()
     latent_z = []
     x_hat = []
-    for itr in range(num_itr):
-        tmp_z, tmp_xhat = extract_latent_xhat(model, next(iter(img_train))[0])
+    for data in img_train:
+        img, _ = data
+        tmp_z, tmp_xhat = extract_latent_xhat(model, img)
         latent_z.append(tmp_z)
         x_hat.append(tmp_xhat)
 

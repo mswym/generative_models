@@ -41,8 +41,13 @@ def extract_latent(model, img_train):
 def extract_latents(num_itr, model, path_checkpoint, img_train):
     model = model.load_from_checkpoint(checkpoint_path=path_checkpoint)
     model.eval()
-    latent_z = [extract_latent(model, next(iter(img_train))[0]) for itr in range(10)]
-    latent_z = np.array(latent_z)
+    i = 0
+    for data in img_train:
+        i = i +1
+        if i<11:
+            img, _ = data
+            latent_z = extract_latent(model, img)
+            latent_z = np.array(latent_z)
 
     return latent_z.reshape([-1, latent_z.shape[2]])
 

@@ -17,10 +17,10 @@ def extract_opaque_trans(dataloader):
     labels = []
     for data in dataloader:
         img, label = data
-        if label[0][2] == 276: #opaque
+        if label[0][2] == 276:  # opaque
             imgs.append(img)
             labels.append(0)
-        elif label[0][2] == 36: #translucent
+        elif label[0][2] == 36:  # translucent
             imgs.append(img)
             labels.append(1)
 
@@ -36,8 +36,8 @@ def extract_latents_xhats_imgs(num_itr, model, img_train):
     model.eval()
     latent_z = []
     x_hat = []
-    for itr in range(num_itr):
-        tmp_z, tmp_xhat = extract_latent_xhat(model, next(iter(img_train)))
+    for img in img_train:
+        tmp_z, tmp_xhat = extract_latent_xhat(model, img)
         latent_z.append(tmp_z)
         x_hat.append(tmp_xhat)
 
@@ -80,11 +80,20 @@ def trans_cpu_and_save(x, dir_name, mask):
 
         tmp.save(dir_name + '/' + str(ind_img) + '.png', format='PNG')
 
+def oritinal_trans_cpu_and_save(num_itr, img_train, dir_name):
+    for i,img in enumerate(img_train):
+        img = img[0].to('cpu').detach().numpy().copy()
+        img = img.transpose(1,2,0)
+        img = 255 * img
+        img = Image.fromarray(np.uint8(img))
+
+        img.save(dir_name + '/' + str(i) + '.png', format='PNG')
+
 if __name__ == '__main__':
     size_input = np.array([256, 256, 3])
     scale_eigenval = 1
     flag_autoadjust_eigenval = False
-
+    flag_orig_save = True
     # list_objname = ['armadillo', 'buddha', 'bun', 'bunny', 'bust', 'cap', 'cube', 'dragon', 'lucy', 'star_smooth',
     #                'sphere']
     # list_num_latent = [16]
@@ -95,7 +104,7 @@ if __name__ == '__main__':
     ind_obj_1 = 'bust'
     ind_obj_2 = 'bun'
 
-    param_scale = 0.05
+    param_scale = 1
 
     start_time = time.perf_counter()
 
@@ -141,8 +150,13 @@ if __name__ == '__main__':
     with open(path_load_2, 'rb') as f:
         svm_model_2 = pickle.load(f)
 
-    latent_z_1 = latent_z_1 + param_scale * svm_model_1.coef_
-    latent_z_2 = latent_z_2 + param_scale * svm_model_2.coef_
+    #dist_1 = svm_model_1.decision_function(latent_z_1)/np.linalg.norm(svm_model_1.coef_)
+    #dist_2 = svm_model_2.decision_function(latent_z_2) / np.linalg.norm(svm_model_2.coef_)
+
+    unit_1 = svm_model_1.coef_/np.linalg.norm(svm_model_1.coef_)
+    unit_2 = svm_model_2.coef_ / np.linalg.norm(svm_model_2.coef_)
+    latent_z_1 = latent_z_1 + param_scale * unit_1
+    latent_z_2 = latent_z_2 + param_scale * unit_2
 
     #swap z
     # load decoders
@@ -169,10 +183,9 @@ if __name__ == '__main__':
     img_hat_2 = cal_decoding(model_2, latent_z_2, len(img_test_2))
 
     # save images
-    dir_name = path_dir_save + "obj_mask/_results_scale" + str(param_scale) + "/" + ind_obj_1 + ind_obj_2 + '_' + str(
+    dir_name = path_dir_save + "obj_mask/_results_scale/_results_scale" + str(param_scale) + "/" + ind_obj_1 + ind_obj_2 + '_' + str(
         scale_eigenval) + '_latent' + str(num_latent)
-    # os.makedirs(dir_name + '/1', exist_ok=True)
-    # os.makedirs(dir_name + '/2', exist_ok=True)
+
     os.makedirs(dir_name + '/11', exist_ok=True)
     os.makedirs(dir_name + '/22', exist_ok=True)
     os.makedirs(dir_name + '/12', exist_ok=True)
@@ -181,6 +194,12 @@ if __name__ == '__main__':
     trans_cpu_and_save(img_hat_2, dir_name + '/22', mask_2)
     trans_cpu_and_save(img_hat_12, dir_name + '/12', mask_2)
     trans_cpu_and_save(img_hat_21, dir_name + '/21', mask_1)
+
+    if flag_orig_save:
+        os.makedirs(dir_name + '/1', exist_ok=True)
+        os.makedirs(dir_name + '/2', exist_ok=True)
+        oritinal_trans_cpu_and_save(len(img_test_1), img_test_1, dir_name + '/1')
+        oritinal_trans_cpu_and_save(len(img_test_2), img_test_2, dir_name + '/2')
 
     print(time.perf_counter() - start_time)
 # control the boundary values

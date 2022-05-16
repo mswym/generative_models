@@ -29,6 +29,7 @@ def extract_opaque_trans(dataloader):
 def cal_svm(X, label):
     svm_model = svm.SVC(kernel='linear')
     svm_model.fit(X, label)
+    print(svm_model.score(X, label))
 
     return svm_model
 
@@ -42,8 +43,8 @@ def extract_latents_xhats_imgs(num_itr, model, img_train):
     model.eval()
     latent_z = []
     x_hat = []
-    for itr in range(num_itr):
-        tmp_z, tmp_xhat = extract_latent_xhat(model, next(iter(img_train)))
+    for img in img_train:
+        tmp_z, tmp_xhat = extract_latent_xhat(model, img)
         latent_z.append(tmp_z)
         x_hat.append(tmp_xhat)
 
@@ -64,7 +65,7 @@ if __name__ == '__main__':
     path_dir_save = '/media/mswym/PortableSSD/translucency/'
 
     model_body = VAE_vanilla()
-    num_latent = 16
+    num_latent = 128
     #ind_obj_1 = 'lucy'
     #ind_obj_2 = 'bun'
 
@@ -111,6 +112,7 @@ if __name__ == '__main__':
         # take svm for the z values
         svm_model_1 = cal_svm(latent_z_1, np.array(labels_1))
         svm_model_2 = cal_svm(latent_z_2, np.array(labels_2))
+
         # save the svm models
         with open(path_save_1, 'wb') as f:
             pickle.dump(svm_model_1, f)
