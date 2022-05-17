@@ -1,6 +1,6 @@
 import numpy as np
 
-#from translucency.vae_vanilla import VAE_vanilla
+from translucency.vae_vanilla import VAE_vanilla
 from translucency.ae import AE
 from translucency.class_mydataset import MyDatasetBinary
 from torchvision import transforms
@@ -35,7 +35,7 @@ def make_decoder(x, y, scale_eigenval=1, autoadjust_eigenval=True):
 
 
 def extract_latent(model, img_train):
-    latent_z, _ = model._run_step(img_train)
+    latent_z, _, _, _ = model._run_step(img_train)
 
     return latent_z.to('cpu').detach().numpy().copy()
 
@@ -43,12 +43,14 @@ def extract_latents(num_itr, model, path_checkpoint, img_train):
     model = model.load_from_checkpoint(checkpoint_path=path_checkpoint)
     model.eval()
     i = 0
+    latent_z = []
     for data in img_train:
         i = i +1
         if i<11:
             img, _ = data
-            latent_z = extract_latent(model, img)
-            latent_z = np.array(latent_z)
+            latent_z.append(extract_latent(model, img))
+
+    latent_z = np.array(latent_z)
 
     return latent_z.reshape([-1, latent_z.shape[2]])
 
@@ -66,7 +68,7 @@ def cal_linear_reg(x, new_coef_matrix, intercept):
     return x_hat.T + intercept
 
 
-def batch_run_make_latent_decoder(list_num_latent):
+def batch_run_make_latent_decoder(list_num_latent,cond='vae', cond2=''):
     batch_size_train = 30
     batch_size_test = 300
     size_input = np.array([256, 256, 3])
@@ -79,9 +81,9 @@ def batch_run_make_latent_decoder(list_num_latent):
     #list_num_latent = [2, 4, 8, 16, 32, 64, 128, 256]
     #list_num_latent = [256]
 
-    path_dir_save = '/home/mswym/workspace/db/'
-    #model_body = VAE_vanilla()
-    model_body = AE()
+    path_dir_save = '/media/mswym/PortableSSD/translucency/'
+    model_body = VAE_vanilla()
+    #model_body = AE()
 
     comb_list = list(itertools.combinations(np.linspace(0, len(list_objname) - 1, len(list_objname)), 2))
 
@@ -92,12 +94,12 @@ def batch_run_make_latent_decoder(list_num_latent):
             ind_obj_1 = int(comb_list[ind_obj][0])
             ind_obj_2 = int(comb_list[ind_obj][1])
 
-            path_save_1 = path_dir_save + "ae/coef/coef_" + list_objname[ind_obj_1] + "-" + list_objname[ind_obj_2] + "_latent" + str(num_latent) + ".pkl"
-            path_save_2 = path_dir_save + "ae/coef/coef_" + list_objname[ind_obj_2] + "-" + list_objname[ind_obj_1] + "_latent" + str(num_latent) + ".pkl"
+            path_save_1 = path_dir_save + cond + "/coef/coef_" + list_objname[ind_obj_1] + "-" + list_objname[ind_obj_2] + "_latent" + str(num_latent) + ".pkl"
+            path_save_2 = path_dir_save + cond +"/coef/coef_" + list_objname[ind_obj_2] + "-" + list_objname[ind_obj_1] + "_latent" + str(num_latent) + ".pkl"
 
-            path_checkpoint_1 = path_dir_save + "ae/ae_" + list_objname[
+            path_checkpoint_1 = path_dir_save + cond + "/" + cond2 + list_objname[
                 ind_obj_1] + "_latent" + str(num_latent) + "_logs/version_0/checkpoints/epoch=99-step=8499.ckpt"
-            path_checkpoint_2 = path_dir_save + "ae/ae_" + list_objname[
+            path_checkpoint_2 = path_dir_save + cond + "/" + cond2 + list_objname[
                 ind_obj_2] + "_latent" + str(num_latent) + "_logs/version_0/checkpoints/epoch=99-step=8499.ckpt"
 
             mypath_1 = path_dir_save + 'model_objects_tonemap_mask/che_220322_1500train_' + list_objname[
