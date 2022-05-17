@@ -61,62 +61,47 @@ if __name__ == '__main__':
 
     list_objname = ['armadillo', 'buddha', 'bun', 'bunny', 'bust', 'cap', 'cube', 'dragon', 'lucy', 'star_smooth',
                     'sphere']
-    # list_num_latent = [16]
-    path_dir_save = '/media/mswym/PortableSSD/translucency/'
+    #list_objname = ['lucy', 'bun']
+    path_dir_save = '/home/mswym/workspace/db/'
 
     model_body = VAE_vanilla()
-    num_latent = 128
+    list_num_latent = [16, 8, 4, 2, 32, 64, 128, 256]
     #ind_obj_1 = 'lucy'
     #ind_obj_2 = 'bun'
 
-    comb_list = list(itertools.combinations(np.linspace(0, len(list_objname) - 1, len(list_objname)), 2))
+    for num_latent in list_num_latent:
+        for ind_obj in list_objname:
+            start_time = time.perf_counter()
 
-    for ind_obj in range(len(comb_list)):
-        start_time = time.perf_counter()
-        ind_obj_1 = list_objname[int(comb_list[ind_obj][0])]
-        ind_obj_2 = list_objname[int(comb_list[ind_obj][1])]
+            path_save_1 = path_dir_save + "obj_mask/svm/svm_" + ind_obj + "_latent" + str(
+                num_latent) + ".pkl"
 
-        path_save_1 = path_dir_save + "obj_mask/svm/svm_" + ind_obj_1 + "-" + ind_obj_2 + "_latent" + str(
-            num_latent) + ".pkl"
-        path_save_2 = path_dir_save + "obj_mask/svm/svm_" + ind_obj_2 + "-" + ind_obj_1 + "_latent" + str(
-            num_latent) + ".pkl"
+            path_checkpoint_1 = path_dir_save + "obj_mask/" + ind_obj + "_latent" + str(
+                num_latent) + "_logs/version_0/checkpoints/epoch=99-step=8499.ckpt"
 
-        path_checkpoint_1 = path_dir_save + "obj_mask/" + ind_obj_1 + "_latent" + str(
-            num_latent) + "_logs/version_0/checkpoints/epoch=99-step=8499.ckpt"
-        path_checkpoint_2 = path_dir_save + "obj_mask/" + ind_obj_2 + "_latent" + str(
-            num_latent) + "_logs/version_0/checkpoints/epoch=99-step=8499.ckpt"
+            mypath_1 = path_dir_save + 'model_objects_tonemap_mask/che_220322_1500train_' + ind_obj + '.binary'
 
-        mypath_1 = path_dir_save + 'model_objects_tonemap_mask/che_220322_1500train_' + ind_obj_1 + '.binary'
-        mypath_2 = path_dir_save + 'model_objects_tonemap_mask/che_220322_1500train_' + ind_obj_2 + '.binary'
+            img_transform = transforms.Compose([
+                transforms.Resize((size_input[0], size_input[1])),
+                transforms.ToTensor()
+            ])
 
+            # load dataset
+            img_train_1 = read_img_dataset(mypath_1, img_transform, 1)  # batche size 1
 
-        img_transform = transforms.Compose([
-            transforms.Resize((size_input[0], size_input[1])),
-            transforms.ToTensor()
-        ])
+            # extract only opaque and translucenct images
+            img_train_1, labels_1 = extract_opaque_trans(img_train_1)
 
-        # load dataset
-        img_train_1 = read_img_dataset(mypath_1, img_transform, 1)  # batche size 1
-        img_train_2 = read_img_dataset(mypath_2, img_transform, 1)  # batche size 1
+            # calculate z value
+            model_1 = model_body.load_from_checkpoint(checkpoint_path=path_checkpoint_1)
+            latent_z_1, img_hat_1 = extract_latents_xhats_imgs(len(img_train_1), model_1, img_train_1)
 
-        # extract only opaque and translucenct images
-        img_train_1, labels_1 = extract_opaque_trans(img_train_1)
-        img_train_2, labels_2 = extract_opaque_trans(img_train_2)
+            # take svm for the z values
+            svm_model_1 = cal_svm(latent_z_1, np.array(labels_1))
 
-        # calculate z value
-        model_1 = model_body.load_from_checkpoint(checkpoint_path=path_checkpoint_1)
-        model_2 = model_body.load_from_checkpoint(checkpoint_path=path_checkpoint_2)
-        latent_z_1, img_hat_1 = extract_latents_xhats_imgs(len(img_train_1), model_1, img_train_1)
-        latent_z_2, img_hat_2 = extract_latents_xhats_imgs(len(img_train_2), model_2, img_train_2)
+            # save the svm models
+            with open(path_save_1, 'wb') as f:
+                pickle.dump(svm_model_1, f)
 
-        # take svm for the z values
-        svm_model_1 = cal_svm(latent_z_1, np.array(labels_1))
-        svm_model_2 = cal_svm(latent_z_2, np.array(labels_2))
-
-        # save the svm models
-        with open(path_save_1, 'wb') as f:
-            pickle.dump(svm_model_1, f)
-        with open(path_save_2, 'wb') as f:
-            pickle.dump(svm_model_2, f)
-        print(time.perf_counter() - start_time)
-    # control the boundary values
+            print(time.perf_counter() - start_time)
+        # control the boundary values

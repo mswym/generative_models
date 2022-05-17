@@ -97,20 +97,20 @@ if __name__ == '__main__':
     # list_objname = ['armadillo', 'buddha', 'bun', 'bunny', 'bust', 'cap', 'cube', 'dragon', 'lucy', 'star_smooth',
     #                'sphere']
     # list_num_latent = [16]
-    path_dir_save = '/media/mswym/PortableSSD/translucency/'
+    path_dir_save = '/home/mswym/workspace/db/'
 
     model_body = VAE_vanilla()
     num_latent = 16
-    ind_obj_1 = 'bust'
+    ind_obj_1 = 'lucy'
     ind_obj_2 = 'bun'
 
-    param_scale = 1
+    param_scale = 5
 
     start_time = time.perf_counter()
 
-    path_load_1 = path_dir_save + "obj_mask/svm/svm_" + ind_obj_1 + "-" + ind_obj_2 + "_latent" + str(
+    path_load_1 = path_dir_save + "obj_mask/svm/svm_" + ind_obj_1 + "_latent" + str(
         num_latent) + ".pkl"
-    path_load_2 = path_dir_save + "obj_mask/svm/svm_" + ind_obj_2 + "-" + ind_obj_1 + "_latent" + str(
+    path_load_2 = path_dir_save + "obj_mask/svm/svm_" + ind_obj_2 + "_latent" + str(
         num_latent) + ".pkl"
 
     path_checkpoint_1 = path_dir_save + "obj_mask/" + ind_obj_1 + "_latent" + str(
