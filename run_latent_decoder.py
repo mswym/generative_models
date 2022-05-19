@@ -35,7 +35,8 @@ def make_decoder(x, y, scale_eigenval=1, autoadjust_eigenval=True):
 
 
 def extract_latent(model, img_train):
-    latent_z, _, _, _ = model._run_step(img_train)
+    #latent_z, _, _, _ = model._run_step(img_train)
+    latent_z, _ = model._run_step(img_train)
 
     return latent_z.to('cpu').detach().numpy().copy()
 
@@ -68,7 +69,7 @@ def cal_linear_reg(x, new_coef_matrix, intercept):
     return x_hat.T + intercept
 
 
-def batch_run_make_latent_decoder(list_num_latent,cond='vae', cond2=''):
+def batch_run_make_latent_decoder(list_num_latent,cond='obj_mask', cond2='ae_'):
     batch_size_train = 30
     batch_size_test = 300
     size_input = np.array([256, 256, 3])
@@ -81,9 +82,9 @@ def batch_run_make_latent_decoder(list_num_latent,cond='vae', cond2=''):
     #list_num_latent = [2, 4, 8, 16, 32, 64, 128, 256]
     #list_num_latent = [256]
 
-    path_dir_save = '/media/mswym/PortableSSD/translucency/'
-    model_body = VAE_vanilla()
-    #model_body = AE()
+    path_dir_save = '/home/mswym/workspace/db/ae_fail/'
+    #model_body = VAE_vanilla()
+    model_body = AE()
 
     comb_list = list(itertools.combinations(np.linspace(0, len(list_objname) - 1, len(list_objname)), 2))
 

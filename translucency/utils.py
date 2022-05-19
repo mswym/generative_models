@@ -22,7 +22,8 @@ def read_img_dataset(mypath, img_transform, batch_size_train):
     return dataset
 
 def extract_latent_xhat(model, img_train):
-    latent_z, img_hat, _, _ = model._run_step(img_train)
+    #latent_z, img_hat, _, _ = model._run_step(img_train)
+    latent_z, img_hat = model._run_step(img_train)
 
     return latent_z.to('cpu').detach().numpy().copy(), img_hat.to('cpu').detach().numpy().copy()
 

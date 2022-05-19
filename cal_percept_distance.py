@@ -85,7 +85,7 @@ def draw_rdm(vals, name_rowcol):
 if __name__ == '__main__':
     num_img = 300
     size_img = [256, 256, 3]
-    path_dir = '/media/mswym/PortableSSD/translucency/'
+    path_dir = '/home/mswym/workspace/db/ae_fail/'
 
     loss_fn_alex = lpips.LPIPS(net='alex')  # best forward scores
 
@@ -99,9 +99,10 @@ if __name__ == '__main__':
     comb_list = list(itertools.combinations(np.linspace(0, len(list_objname) - 1, len(list_objname)), 2))
 
 
-    list_condcomp = [(11, 21), (22, 12), (1, 11), (1, 21), (2, 12), (2, 22)]
+    #list_condcomp = [(1, 11), (1, 21), (2, 12), (2, 22)]
+    list_condcomp = [(1, 11), (1, 21)]
 
-    list_num_latent = [2, 4, 8, 16, 32, 64, 128, 256]
+    list_num_latent = [2, 4, 16, 64, 128, 256]
 
     for num_latent in list_num_latent:
         for i, ind_cond in enumerate(list_condcomp):
@@ -110,7 +111,8 @@ if __name__ == '__main__':
             for ind_obj in comb_list:
                 psnr = []
                 lpips = []
-                if i == 0 or i == 1:
+                #if i == 0 or i == 1:
+                if i == 99:
                     path_dir_1 = path_dir + 'obj_mask/_results/' + list_objname[int(ind_obj[0])] + \
                                  list_objname[int(ind_obj[1])] + '_1' + '_latent' + str(num_latent) + '/' + str(ind_cond[0]) + '/*'
                     path_dir_2 = path_dir + 'obj_mask/_results/' + list_objname[int(ind_obj[0])] + \

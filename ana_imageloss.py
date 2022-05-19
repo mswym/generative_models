@@ -87,7 +87,7 @@ def draw_distributions(mean_y1, std_y1, mean_y2, std_y2, list_xlim=[1, 384],
     plt.show()
 
 if __name__ == '__main__':
-    path_dir = '/media/mswym/PortableSSD/translucency/'
+    path_dir = '/home/mswym/workspace/db/ae_fail/rdm/'
     num_obj = 11
 
     list_objname = ['armadillo', 'buddha', 'bun', 'bunny', 'bust', 'cap', 'cube', 'dragon', 'lucy', 'star_smooth', 'sphere']
