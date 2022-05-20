@@ -313,17 +313,17 @@ if __name__ == '__main__':
     num_epochs = 100
 
     batch_size = 16
-    learning_rate = 1e-5
+    learning_rate = 5e-6
     size_input = np.array([256, 256, 3])
     ratio_trainval = 0.9
     kl_coeff = 0.00001
 
-    #list_objname = ['armadillo', 'buddha', 'bun', 'bunny', 'bust', 'cap', 'cube', 'dragon', 'lucy', 'star_smooth', 'sphere']
-    list_objname = ['bust', 'bunny', 'sphere', 'armadillo', 'buddha', 'bun','cap', 'cube', 'dragon', 'lucy', 'star_smooth']
+    list_objname = ['armadillo', 'buddha', 'bun', 'bunny', 'bust', 'cap', 'cube', 'dragon', 'lucy', 'star_smooth', 'sphere']
+    #list_objname = ['bust', 'bunny', 'sphere', 'armadillo', 'buddha', 'bun','cap', 'cube', 'dragon', 'lucy', 'star_smooth']
     #path_dir_save = '/media/mswym/SSD-PGU3/database/results_translucent_220303/model_objects_tonemap_mask/'
-    path_dir_save = '/home/mswym/workspace/myprj/model_objects_tonemap_mask/'
+    path_dir_save = '/home/mswym/workspace/db/infovae/obj_mask/'
 
-    latent_dims = [16, 32, 2, 4, 8, 64, 128, 256]
+    latent_dims = [2, 4, 8, 16, 32, 64, 128, 256]
 
     for latent_dim in latent_dims:
         for ind_obj in list_objname:

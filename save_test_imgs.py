@@ -41,8 +41,8 @@ if __name__ == '__main__':
 
         img_test = read_img_dataset(mypath_1, img_transform, batch_size_test)
         img = []
-        for itr in range(len(img_test)):
-            tmp = next(iter(img_test))[0]
+        for data in img_test:
+            tmp, _ = data
             tmp = tmp.to('cpu').detach().numpy().copy()
             img.append(tmp)
         img = np.array(img)

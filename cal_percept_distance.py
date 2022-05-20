@@ -85,7 +85,7 @@ def draw_rdm(vals, name_rowcol):
 if __name__ == '__main__':
     num_img = 300
     size_img = [256, 256, 3]
-    path_dir = '/media/mswym/PortableSSD/translucency/'
+    path_dir = '/home/mswym/workspace/db/ae_fail/'
 
     loss_fn_alex = lpips.LPIPS(net='alex')  # best forward scores
 
@@ -101,7 +101,7 @@ if __name__ == '__main__':
 
     list_condcomp = [(11, 21), (22, 12), (1, 11), (1, 21), (2, 12), (2, 22)]
 
-    list_num_latent = [2, 4, 8, 16, 32, 64, 128, 256]
+    list_num_latent = [2, 4, 16, 64, 128, 256]
 
     for num_latent in list_num_latent:
         for i, ind_cond in enumerate(list_condcomp):
