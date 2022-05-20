@@ -65,9 +65,9 @@ def batch_run_make_swapping(list_num_latent,cond='vae', cond2=''):
     # list_num_latent = [2, 4, 8, 16, 32, 64, 128, 256]
     #list_num_latent = [8]
 
-    path_dir_save = '/home/mswym/workspace/db/ae_fail/'
-    #model_body = VAE_vanilla()
-    model_body = AE()
+    path_dir_save = '/home/mswym/workspace/db/'
+    model_body = VAE_vanilla()
+    #model_body = AE()
 
     comb_list = list(itertools.combinations(np.linspace(0, len(list_objname) - 1, len(list_objname)), 2))
     count = 0

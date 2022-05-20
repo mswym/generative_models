@@ -12,6 +12,4 @@ if __name__ == '__main__':
 
     from run_transfer_generation import *
     latent_dims = [2, 4, 16, 64, 128, 256]
-    batch_run_make_swapping(latent_dims, cond='obj_mask', cond2='ae_')
-
-    #batch_run_make_swapping(latent_dims, cond='obj_mask', cond2='')
+    batch_run_make_swapping(latent_dims, cond='obj_mask', cond2='')

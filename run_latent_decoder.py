@@ -35,8 +35,8 @@ def make_decoder(x, y, scale_eigenval=1, autoadjust_eigenval=True):
 
 
 def extract_latent(model, img_train):
-    #latent_z, _, _, _ = model._run_step(img_train)
-    latent_z, _ = model._run_step(img_train)
+    latent_z, _, _, _ = model._run_step(img_train)
+    #latent_z, _ = model._run_step(img_train)
 
     return latent_z.to('cpu').detach().numpy().copy()
 
@@ -83,8 +83,8 @@ def batch_run_make_latent_decoder(list_num_latent,cond='obj_mask', cond2='ae_'):
     #list_num_latent = [256]
 
     path_dir_save = '/home/mswym/workspace/db/ae_fail/'
-    #model_body = VAE_vanilla()
-    model_body = AE()
+    model_body = VAE_vanilla()
+    #model_body = AE()
 
     comb_list = list(itertools.combinations(np.linspace(0, len(list_objname) - 1, len(list_objname)), 2))
 
