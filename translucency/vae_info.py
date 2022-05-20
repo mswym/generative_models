@@ -323,7 +323,7 @@ if __name__ == '__main__':
     #path_dir_save = '/media/mswym/SSD-PGU3/database/results_translucent_220303/model_objects_tonemap_mask/'
     path_dir_save = '/home/mswym/workspace/db/infovae/obj_mask/'
 
-    latent_dims = [256]
+    latent_dims = [2, 4, 8, 16, 32, 64, 128, 256]
 
     for latent_dim in latent_dims:
         for ind_obj in list_objname:
