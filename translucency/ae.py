@@ -27,7 +27,7 @@ import matplotlib.pyplot as plt
 import copy
 import numpy as np
 from pytorch_lightning import loggers as pl_loggers
-from class_mydataset_wo_openexr import MyDatasetBinary
+from translucency.class_mydataset_wo_openexr import MyDatasetBinary
 
 class AE(LightningModule):
     """Standard VAE with Gaussian Prior and approx posterior.

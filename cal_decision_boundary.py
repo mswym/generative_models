@@ -65,7 +65,7 @@ if __name__ == '__main__':
     path_dir_save = '/home/mswym/workspace/db/'
 
     model_body = VAE_vanilla()
-    list_num_latent = [16, 8, 4, 2, 32, 64, 128, 256]
+    list_num_latent = [256]
     #ind_obj_1 = 'lucy'
     #ind_obj_2 = 'bun'
 
