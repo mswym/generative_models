@@ -12,6 +12,7 @@ from translucency.vae_vanilla import VAE_vanilla
 from translucency.ae import AE
 
 from sklearn.decomposition import PCA
+import matplotlib.ticker as ticker
 
 import pickle
 
@@ -41,16 +42,17 @@ def read_img_dataset(mypath, img_transform, batch_size_train):
 
     return dataset
 
-if __name__ == '__main__':
+
+def batch_ana_screeplot():
     batch_size_train = 10
     size_input = np.array([256, 256, 3])
     list_objname = ['armadillo', 'buddha', 'bun', 'bunny', 'bust', 'cap', 'cube', 'dragon', 'lucy', 'star_smooth',
                     'sphere']
 
-    path_dir_save = '/home/mswym/workspace/db/'
+    path_dir_save = '/media/mswym/PortableSSD/translucency/'
     path_save_sum = path_dir_save + 'vae_vanilla_screeplot.pickle'
     model_body = VAE_vanilla()
-    list_num_latent = [128, 256]
+    list_num_latent = [2, 4, 8, 16, 32, 64, 128, 256]
     summary_explained_variance_ratio = []
 
     for num_latent in list_num_latent:
@@ -89,4 +91,58 @@ if __name__ == '__main__':
 
     with open(path_save_sum, 'wb') as f:
         pickle.dump(summary_explained_variance_ratio, f)
+
+def draw_plots(summary_explained_variance_ratio, std_val=0.05, list_xlim=[0.7, 64],
+                           list_ylim=[0, 0.9],
+                           list_set_xticklabels=['', '', '1', '10', '100'], list_set_xticks=[1, 10, 100],
+                           list_set_yticklabels=['0.0', '0.2', '0.4', '0.6', '0.8'],
+                           list_set_yticks=[0, 0.2, 0.4, 0.6, 0.8],
+                           val_ticks=0.02,
+                           fname_save='screeplot.png',
+                           scale_jitter=5,
+                           scale_panel=1,
+                           alpha_fill=0.2):
+
+
+    fig = plt.figure(figsize=(8.7, 6.5))
+    axes = fig.add_subplot(1, scale_panel, 1)
+    num_params = len(summary_explained_variance_ratio)
+    col_map = plt.get_cmap('plasma')
+    for i in range(num_params):
+        data = summary_explained_variance_ratio[i]
+        mean = np.mean(data, 0)
+        sem = np.std(data, 0)/np.sqrt(data.shape[0])
+        x = np.linspace(1,len(mean),len(mean))
+        ind_color = int(i*(255/num_params))
+        print(ind_color)
+        print(col_map(ind_color))
+        axes.plot(x, mean, color=col_map(ind_color), linewidth=3)
+        axes.fill_between(x, mean+sem, mean-sem, color=col_map(ind_color), alpha=alpha_fill)
+        #axes.errorbar(x, mean,
+        #              yerr=[std, std],
+        #              capsize=15,
+        #              fmt='s', markersize=11, ecolor='red', markeredgecolor="black", color='red', mew=1)
+
+
+    axes.set_xlim(list_xlim)
+    axes.set_ylim(list_ylim)
+    # axes.xaxis.grid(True, which='minor')
+    #axes.set_xticks(list_set_xticks)
+    axes.set_xscale('log')
+    axes.set_xticklabels(list_set_xticklabels, fontsize=20)
+    axes.set_yticks(list_set_yticks)
+    axes.set_yticklabels(list_set_yticklabels, fontsize=20)
+    # axes.grid()
+    axes.yaxis.set_minor_locator(ticker.MultipleLocator(val_ticks))
+    fig.savefig(fname_save)
+    plt.show()
+
+if __name__ == '__main__':
+    path_dir_save = '/media/mswym/PortableSSD/translucency/'
+    path_save_sum = path_dir_save + 'vae_vanilla_screeplot.pickle'
+
+    with open(path_save_sum, 'rb') as f:
+        summary_explained_variance_ratio = pickle.load(f)
+
+    draw_plots(summary_explained_variance_ratio)
 
