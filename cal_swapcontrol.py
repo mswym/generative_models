@@ -12,6 +12,8 @@ from translucency.vae_vanilla import VAE_vanilla
 from sklearn import svm
 from PIL import Image
 
+import itertools
+
 def extract_opaque_trans(dataloader):
     imgs = []
     labels = []
@@ -92,13 +94,12 @@ def oritinal_trans_cpu_and_save(num_itr, img_train, dir_name):
 if __name__ == '__main__':
     size_input = np.array([256, 256, 3])
     scale_eigenval = 1
-    flag_autoadjust_eigenval = False
     flag_orig_save = True
-    # list_objname = ['armadillo', 'buddha', 'bun', 'bunny', 'bust', 'cap', 'cube', 'dragon', 'lucy', 'star_smooth',
-    #                'sphere']
+    list_objname = ['armadillo', 'buddha', 'bun', 'bunny', 'bust', 'cap', 'cube', 'dragon', 'lucy', 'star_smooth',
+                    'sphere']
     # list_num_latent = [16]
-    list_objname1 = ['lucy', 'lucy', 'bust', 'bust', 'buddha', 'buddha']
-    list_objname2 = ['bun', 'sphere', 'bun', 'sphere', 'bun', 'sphere']
+    #list_objname1 = ['lucy', 'lucy', 'bust', 'bust', 'buddha', 'buddha']
+    #list_objname2 = ['bun', 'sphere', 'bun', 'sphere', 'bun', 'sphere']
 
     path_dir_save = '/home/mswym/workspace/db/'
 
@@ -106,12 +107,17 @@ if __name__ == '__main__':
     #ind_obj_1 = 'lucy'
     #ind_obj_2 = 'bun'
     #param_scale = 1
-    list_param_scale = [9,10,11,12]
+    list_param_scale = [1,4,8,12]
+    #list_param_scale = [0]
     list_num_latent = [32]
+    comb_list = list(itertools.combinations(np.linspace(0, len(list_objname) - 1, len(list_objname)), 2))
 
     for num_latent in list_num_latent:
         for param_scale in list_param_scale:
-            for ind_obj_1,ind_obj_2 in zip(list_objname1,list_objname2):
+            for ind_obj in range(len(comb_list)):
+                start_time = time.perf_counter()
+                ind_obj_1 = list_objname[int(comb_list[ind_obj][0])]
+                ind_obj_2 = list_objname[int(comb_list[ind_obj][1])]
                 print(ind_obj_1)
                 print(ind_obj_2)
 
